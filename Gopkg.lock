@@ -2,6 +2,28 @@
 
 
 [[projects]]
+  digest = "1:f9ae348e1f793dcf9ed930ed47136a67343dbd6809c5c91391322267f4476892"
+  name = "github.com/Microsoft/go-winio"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "97e4973ce50b2ff5f09635a57e2b88a037aae829"
+  version = "v0.4.11"
+
+[[projects]]
+  branch = "master"
+  digest = "1:42882b8203d9c0d4752985a6454efd4e26b2d02dc7182456c301f1d174542fd8"
+  name = "github.com/containerd/continuity"
+  packages = [
+    "devices",
+    "driver",
+    "pathdriver",
+    "syscallx",
+    "sysx",
+  ]
+  pruneopts = "UT"
+  revision = "f44b615e492bdfb371aae2f76ec694d9da1db537"
+
+[[projects]]
   branch = "master"
   digest = "1:60ec7e40ad234bb97303768925bdaf225809c6ca7867afc8b18143547dcc2717"
   name = "github.com/docker/distribution"
@@ -19,7 +41,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:2b0b1af265f0ed936325244cb6d86652e2af4e5a1fac66482484e970596f1cb4"
+  digest = "1:4f63b6b00ae1a53037cfdea4cf26aacaaad8df6e38920f7f582be277d28a57dd"
   name = "github.com/docker/docker"
   packages = [
     "api/types",
@@ -33,15 +55,44 @@
     "api/types/swarm",
     "api/types/swarm/runtime",
     "api/types/versions",
+    "daemon/graphdriver",
+    "dockerversion",
     "errdefs",
+    "image",
+    "image/v1",
+    "layer",
+    "oci",
+    "pkg/archive",
+    "pkg/chrootarchive",
+    "pkg/containerfs",
+    "pkg/fileutils",
+    "pkg/idtools",
+    "pkg/ioutils",
+    "pkg/longpath",
+    "pkg/mount",
+    "pkg/parsers/kernel",
+    "pkg/plugingetter",
+    "pkg/plugins",
+    "pkg/plugins/transport",
+    "pkg/pools",
+    "pkg/reexec",
+    "pkg/stringid",
+    "pkg/symlink",
+    "pkg/system",
+    "pkg/useragent",
+    "plugin/v2",
   ]
   pruneopts = "UT"
   revision = "caca40c8ecfc67dbb02c8eb95db2a5db4b8db10f"
 
 [[projects]]
-  digest = "1:ade935c55cd6d0367c843b109b09c9d748b1982952031414740750fdf94747eb"
+  digest = "1:811c86996b1ca46729bad2724d4499014c4b9effd05ef8c71b852aad90deb0ce"
   name = "github.com/docker/go-connections"
-  packages = ["nat"]
+  packages = [
+    "nat",
+    "sockets",
+    "tlsconfig",
+  ]
   pruneopts = "UT"
   revision = "7395e3f8aa162843a74ed6d48e79627d9792ac55"
   version = "v0.4.0"
@@ -79,6 +130,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:7efe48dea4db6b35dcc15e15394b627247e5b3fb814242de986b746ba8e0abf0"
+  name = "github.com/mattn/go-shellwords"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "02e3cf038dcea8290e44424da473dd12be796a8a"
+  version = "v1.0.3"
+
+[[projects]]
   branch = "master"
   digest = "1:bc62c2c038cc8ae51b68f6d52570501a763bb71e78736a9f65d60762429864a9"
   name = "github.com/opencontainers/go-digest"
@@ -98,6 +157,27 @@
   version = "v1.0.1"
 
 [[projects]]
+  digest = "1:2af6a2d2f71efa615ceb992592c13d4ff38068deb906a74ef3f71ad036669602"
+  name = "github.com/opencontainers/runc"
+  packages = [
+    "libcontainer/configs",
+    "libcontainer/devices",
+    "libcontainer/system",
+    "libcontainer/user",
+  ]
+  pruneopts = "UT"
+  revision = "1a124e9c2da68c867ed2c4f4ff19f0cd95cda0cd"
+  version = "v0.0.8"
+
+[[projects]]
+  digest = "1:57234a321bf1f8f98a8a9a5122a2404cc60d0800516f4ab7a7b2375e4b2d19ea"
+  name = "github.com/opencontainers/runtime-spec"
+  packages = ["specs-go"]
+  pruneopts = "UT"
+  revision = "4e3b9264a330d094b0386c3703c5f379119711e8"
+  version = "v1.0.1"
+
+[[projects]]
   digest = "1:e8fcad58263a7511225a674d9c23b9c55aa2f8616e2dab59f184a516f55c6566"
   name = "github.com/peterhellberg/link"
   packages = ["."]
@@ -106,12 +186,32 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
   digest = "1:d867dfa6751c8d7a435821ad3b736310c2ed68945d05b50fb9d23aee0540c8cc"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   pruneopts = "UT"
   revision = "3e01752db0189b9157070a0e1668a620f9a85da2"
   version = "v1.0.6"
+
+[[projects]]
+  digest = "1:1007c42e890797f34ec6fd2a4de659af3cda783b5852922a99b23b5d840d9f72"
+  name = "github.com/vbatts/tar-split"
+  packages = [
+    "archive/tar",
+    "tar/asm",
+    "tar/storage",
+  ]
+  pruneopts = "UT"
+  revision = "61b49a82bb343c846b8dd388c20187c7b3f3c7b5"
+  version = "v0.11.0"
 
 [[projects]]
   branch = "master"
@@ -123,11 +223,23 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0ed1788dc3845fa86e9ade2183538e920adf76fb9f8760e69236fa2cb0d7c9d9"
+  digest = "1:8c520a50d95df847d7732e971616b443afb0d95c3be465e3952bfde515d4e47a"
+  name = "golang.org/x/net"
+  packages = [
+    "internal/socks",
+    "proxy",
+  ]
+  pruneopts = "UT"
+  revision = "161cd47e91fd58ac17490ef4d742dc98bb4cf60e"
+
+[[projects]]
+  branch = "master"
+  digest = "1:997a2bc0b9a0acab004df9925104601a55156edb7a9feeff6e3ce46192d15ba5"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
+    "windows/registry",
   ]
   pruneopts = "UT"
   revision = "917fdcba135dcbaccd57425db91723541b4427c8"
@@ -136,8 +248,14 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/docker/distribution",
+    "github.com/docker/distribution/manifest/manifestlist",
+    "github.com/docker/distribution/manifest/schema1",
+    "github.com/docker/distribution/manifest/schema2",
     "github.com/docker/docker/api/types",
+    "github.com/docker/docker/image/v1",
     "github.com/genuinetools/reg/registry",
+    "github.com/opencontainers/go-digest",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

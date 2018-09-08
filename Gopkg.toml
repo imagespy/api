@@ -31,3 +31,7 @@
 [[constraint]]
   name = "github.com/genuinetools/reg"
   version = "0.15.5"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/docker/docker"
