@@ -41,7 +41,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4f63b6b00ae1a53037cfdea4cf26aacaaad8df6e38920f7f582be277d28a57dd"
+  digest = "1:fc33a35f3684254a7ce90bc595db7b97ae14d2288a58171025b659c7b823d50e"
   name = "github.com/docker/docker"
   packages = [
     "api/types",
@@ -59,7 +59,6 @@
     "dockerversion",
     "errdefs",
     "image",
-    "image/v1",
     "layer",
     "oci",
     "pkg/archive",
@@ -157,7 +156,7 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:2af6a2d2f71efa615ceb992592c13d4ff38068deb906a74ef3f71ad036669602"
+  digest = "1:4921418eb7b8c0db50f12585f61fce30d305015111e551732fda6738d66acad2"
   name = "github.com/opencontainers/runc"
   packages = [
     "libcontainer/configs",
@@ -166,8 +165,7 @@
     "libcontainer/user",
   ]
   pruneopts = "UT"
-  revision = "1a124e9c2da68c867ed2c4f4ff19f0cd95cda0cd"
-  version = "v0.0.8"
+  revision = "4fc53a81fb7c994640722ac585fa9ca548971871"
 
 [[projects]]
   digest = "1:57234a321bf1f8f98a8a9a5122a2404cc60d0800516f4ab7a7b2375e4b2d19ea"
@@ -253,7 +251,7 @@
     "github.com/docker/distribution/manifest/schema1",
     "github.com/docker/distribution/manifest/schema2",
     "github.com/docker/docker/api/types",
-    "github.com/docker/docker/image/v1",
+    "github.com/docker/docker/image",
     "github.com/genuinetools/reg/registry",
     "github.com/opencontainers/go-digest",
   ]

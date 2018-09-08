@@ -28,6 +28,10 @@
   go-tests = true
   unused-packages = true
 
+[[override]]
+  name = "github.com/opencontainers/runc"
+  revision = "4fc53a81fb7c994640722ac585fa9ca548971871"
+
 [[constraint]]
   name = "github.com/genuinetools/reg"
   version = "0.15.5"
