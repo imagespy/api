@@ -2,7 +2,13 @@ package versionparser
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
+)
+
+var (
+	nameDateRegexp  = regexp.MustCompile("^(\\w*)-(\\d{8})$")
+	staticKnownTags = map[string]struct{}{"latest": struct{}{}, "mainline": struct{}{}, "master": struct{}{}, "stable": struct{}{}}
 )
 
 type NameDate struct {

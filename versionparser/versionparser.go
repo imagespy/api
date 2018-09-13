@@ -2,15 +2,12 @@ package versionparser
 
 import (
 	"errors"
-	"regexp"
 )
 
 var (
 	ErrWrongDistinction    = errors.New("Other Version Parser has a different distinction")
 	ErrWrongVPType         = errors.New("Cannot compare with this Version Parser")
 	ErrVersionNotSupported = errors.New("Version Parser does not support this version string")
-	nameDateRegexp         = regexp.MustCompile("^(\\w*)-(\\d{8})$")
-	staticKnownTags        = map[string]struct{}{"latest": struct{}{}, "mainline": struct{}{}, "master": struct{}{}, "stable": struct{}{}}
 )
 
 type VersionParser interface {
@@ -47,3 +44,7 @@ func NewDefaultRegistry() *DefaultRegistry {
 }
 
 var Registry *DefaultRegistry = NewDefaultRegistry()
+
+func FindForVersion(version string) VersionParser {
+	return Registry.FindForVersion(version)
+}
