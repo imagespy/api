@@ -78,7 +78,7 @@ func NewImage(image string, insecure bool) (*Image, error) {
 	return &Image{
 		parsed:    img,
 		regClient: regClient,
-		repository: &Repository{
+		Repository: &Repository{
 			name:      img.Path,
 			regClient: regClient,
 		},
@@ -147,7 +147,7 @@ func (r *Repository) newImage(digest string, tag string) *Image {
 	return &Image{
 		parsed:     parsed,
 		regClient:  r.regClient,
-		repository: r,
+		Repository: r,
 	}
 }
 
@@ -156,7 +156,7 @@ type Image struct {
 	platforms     []Platform
 	populated     bool
 	regClient     *reg.Registry
-	repository    *Repository
+	Repository    *Repository
 	schemaVersion int
 }
 
