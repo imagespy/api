@@ -26,6 +26,45 @@ func (g *gormStore) FindImageByTag(repository string, tag string) (*Image, error
 		return nil, result.Error
 	}
 
+	for _, p := range image.Platforms {
+		features := []*Feature{}
+		result := g.db.Model(p).Related(&features, "Features")
+		if result.Error != nil {
+			return nil, result.Error
+		}
+
+		p.Features = append(p.Features, features...)
+		osFeatures := []*OSFeature{}
+		result = g.db.Model(p).Related(&osFeatures, "OSFeatures")
+		if result.Error != nil {
+			return nil, result.Error
+		}
+
+		p.OSFeatures = append(p.OSFeatures, osFeatures...)
+		layersOfPlatform := []*LayerOfPlatform{}
+		result = g.db.Model(p).Related(&layersOfPlatform)
+		if result.Error != nil {
+			return nil, result.Error
+		}
+
+		for _, lop := range layersOfPlatform {
+			layer := &Layer{}
+			result := g.db.Model(lop).Related(layer)
+			if result.Error != nil {
+				return nil, result.Error
+			}
+
+			sourceImages := []*Image{}
+			g.db.Model(layer).Related(&sourceImages)
+			if result.Error != nil {
+				return nil, result.Error
+			}
+
+			layer.SourceImages = sourceImages
+			p.Layers = append(p.Layers, layer)
+		}
+	}
+
 	return image, nil
 }
 
@@ -185,6 +224,11 @@ func (g *gormStore) CreateImageFromRegistryImage(distinction string, regImg *reg
 	}
 
 	return image, tag, nil
+}
+
+func (g *gormStore) Migrate() error {
+	g.db.AutoMigrate(&Feature{}, &OSFeature{}, &Image{}, &Layer{}, &LayerOfPlatform{}, &Platform{}, &Tag{})
+	return nil
 }
 
 func NewGormStore(connection string) (*gormStore, error) {

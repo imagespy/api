@@ -14,4 +14,5 @@ type Store interface {
 	Close() error
 	CreateImageFromRegistryImage(distinction string, regImg *registry.Image) (*Image, *Tag, error)
 	FindImageByTag(repository string, tag string) (*Image, error)
+	Migrate() error
 }
