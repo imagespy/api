@@ -1,0 +1,11 @@
+---
+
+version: '3'
+services:
+  database:
+    environment:
+      MYSQL_DATABASE: imagespy
+      MYSQL_ROOT_PASSWORD: root
+    image: mysql:8.0.12
+    ports:
+      - "33306:3306"
