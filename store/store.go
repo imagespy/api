@@ -13,6 +13,7 @@ var (
 type Store interface {
 	Close() error
 	CreateImageFromRegistryImage(distinction string, regImg *registry.Image) (*Image, *Tag, error)
-	FindImageByTag(repository string, tag string) (*Image, error)
+	FindLatestImageWithTagsByDistinction(distinction string, repository string) (*Image, error)
+	FindImageWithTagsByTag(repository string, tag string) (*Image, error)
 	Migrate() error
 }

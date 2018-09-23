@@ -15,9 +15,9 @@ func (g *gormStore) Close() error {
 	return g.db.Close()
 }
 
-func (g *gormStore) FindImageByTag(repository string, tag string) (*Image, error) {
+func (g *gormStore) FindLatestImageWithTagsByDistinction(distinction string, repository string) (*Image, error) {
 	image := &Image{}
-	result := g.db.Where("imagespy_image.name = ? AND imagespy_tag.name = ? AND imagespy_tag.is_latest = 1", repository, tag).Joins("inner join imagespy_tag on imagespy_tag.image_id = imagespy_image.id").Preload("Tags").Preload("Platforms").First(image)
+	result := g.db.Where("imagespy_image.name = ? AND imagespy_tag.distinction = ? AND imagespy_tag.is_latest = 1", repository, distinction).Joins("inner join imagespy_tag on imagespy_tag.image_id = imagespy_image.id").Preload("Tags").Last(image)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			return nil, ErrDoesNotExist
@@ -26,43 +26,18 @@ func (g *gormStore) FindImageByTag(repository string, tag string) (*Image, error
 		return nil, result.Error
 	}
 
-	for _, p := range image.Platforms {
-		features := []*Feature{}
-		result := g.db.Model(p).Related(&features, "Features")
-		if result.Error != nil {
-			return nil, result.Error
+	return image, nil
+}
+
+func (g *gormStore) FindImageWithTagsByTag(repository string, tag string) (*Image, error) {
+	image := &Image{}
+	result := g.db.Where("imagespy_image.name = ? AND imagespy_tag.name = ?", repository, tag).Joins("inner join imagespy_tag on imagespy_tag.image_id = imagespy_image.id").Preload("Tags").Last(image)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, ErrDoesNotExist
 		}
 
-		p.Features = append(p.Features, features...)
-		osFeatures := []*OSFeature{}
-		result = g.db.Model(p).Related(&osFeatures, "OSFeatures")
-		if result.Error != nil {
-			return nil, result.Error
-		}
-
-		p.OSFeatures = append(p.OSFeatures, osFeatures...)
-		layersOfPlatform := []*LayerOfPlatform{}
-		result = g.db.Model(p).Related(&layersOfPlatform)
-		if result.Error != nil {
-			return nil, result.Error
-		}
-
-		for _, lop := range layersOfPlatform {
-			layer := &Layer{}
-			result := g.db.Model(lop).Related(layer)
-			if result.Error != nil {
-				return nil, result.Error
-			}
-
-			sourceImages := []*Image{}
-			g.db.Model(layer).Related(&sourceImages)
-			if result.Error != nil {
-				return nil, result.Error
-			}
-
-			layer.SourceImages = sourceImages
-			p.Layers = append(p.Layers, layer)
-		}
+		return nil, result.Error
 	}
 
 	return image, nil
@@ -91,7 +66,7 @@ func (g *gormStore) CreateImageFromRegistryImage(distinction string, regImg *reg
 		return nil, nil, err
 	}
 
-	result := tx.FirstOrCreate(image, Image{Digest: imageDigest, Name: regImg.Repository.FullName(), SchemaVersion: imageSV})
+	result := tx.Preload("Tags").FirstOrCreate(image, Image{Digest: imageDigest, Name: regImg.Repository.FullName(), SchemaVersion: imageSV})
 	if result.Error != nil {
 		tx.Rollback()
 		return nil, nil, result.Error

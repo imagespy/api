@@ -1,12 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"net/http"
+	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/imagespy/api/store"
-	"github.com/jinzhu/gorm"
+	"github.com/imagespy/api/web"
 )
 
 func main() {
@@ -16,22 +17,27 @@ func main() {
 	}
 
 	defer s.Close()
-	img, err := s.FindImageByTag("index.docker.io/prom/prometheus", "v2.3.2")
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			fmt.Printf("%#v\n", err)
-		}
-		log.Fatal(err)
+
+	if os.Getenv("MIGRATE") == "1" {
+		s.Migrate()
 	}
 
-	fmt.Printf("%+v\n", img)
-	for _, tag := range img.Tags {
-		fmt.Printf("%+v\n", tag)
-	}
-
-	for _, platform := range img.Platforms {
-		fmt.Printf("%+v\n", platform)
-	}
+	// img, err := s.FindImageWithTagsByTag("index.docker.io/prom/prometheus", "v2.3.2")
+	// if err != nil {
+	// 	if err == gorm.ErrRecordNotFound {
+	// 		fmt.Printf("%#v\n", err)
+	// 	}
+	// 	log.Fatal(err)
+	// }
+	//
+	// fmt.Printf("%+v\n", img)
+	// for _, tag := range img.Tags {
+	// 	fmt.Printf("%+v\n", tag)
+	// }
+	//
+	// for _, platform := range img.Platforms {
+	// 	fmt.Printf("%+v\n", platform)
+	// }
 	// log.Println("Requesting image from registry...")
 	// regImg, err := registry.NewImage("prom/prometheus:v2.3.2", false)
 	// if err != nil {
@@ -52,4 +58,28 @@ func main() {
 	// for _, l := range image.Platforms[0].Layers {
 	// 	fmt.Println(l.Digest)
 	// }
+
+	// fmt.Println("")
+	// fmt.Println("--------------------------------------------------------")
+	// fmt.Println("")
+	//
+	// image2, err := s.FindImageWithTagsByTag("index.docker.io/prom/prometheus", "v2.3.2")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	//
+	// fmt.Printf("%#v\n", image2)
+	// for _, tag2 := range image2.Tags {
+	// 	fmt.Printf("%#v\n", tag2)
+	// }
+	//
+	// for _, platform2 := range image2.Platforms {
+	// 	fmt.Printf("%#v\n", platform2)
+	// 	for _, layer2 := range platform2.Layers {
+	// 		fmt.Printf("  %#v\n", layer2)
+	// 	}
+	// }
+
+	handler := web.Init(s)
+	log.Fatal(http.ListenAndServe(":3001", handler))
 }

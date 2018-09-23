@@ -21,7 +21,7 @@ func (s *scraper) updateImage(image string) error {
 		return err
 	}
 
-	_, err = s.store.FindImageByTag(regImg.Repository.FullName(), regTag)
+	_, err = s.store.FindImageWithTagsByTag(regImg.Repository.FullName(), regTag)
 	if err == nil {
 		return nil
 	}
