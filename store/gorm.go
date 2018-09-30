@@ -63,7 +63,7 @@ func (g *gormStore) CreateImageFromRegistryImage(distinction string, regImg *reg
 	}
 	tx := g.db.Begin()
 	if tx.Error != nil {
-		return nil, nil, err
+		return nil, nil, tx.Error
 	}
 
 	result := tx.Preload("Tags").FirstOrCreate(image, Image{Digest: imageDigest, Name: regImg.Repository.FullName(), SchemaVersion: imageSV})
@@ -81,7 +81,7 @@ func (g *gormStore) CreateImageFromRegistryImage(distinction string, regImg *reg
 	tag := &Tag{
 		Distinction: distinction,
 		ImageID:     image.ID,
-		IsLatest:    true,
+		IsLatest:    false,
 		IsTagged:    true,
 		Name:        tagName,
 	}
@@ -91,7 +91,10 @@ func (g *gormStore) CreateImageFromRegistryImage(distinction string, regImg *reg
 		return nil, nil, result.Error
 	}
 
-	image.Tags = append(image.Tags, tag)
+	if image.HasTag(tag) == false {
+		image.Tags = append(image.Tags, tag)
+	}
+
 	regPlatforms, err := regImg.Platforms()
 	if err != nil {
 		tx.Rollback()
@@ -203,6 +206,26 @@ func (g *gormStore) CreateImageFromRegistryImage(distinction string, regImg *reg
 
 func (g *gormStore) Migrate() error {
 	g.db.AutoMigrate(&Feature{}, &OSFeature{}, &Image{}, &Layer{}, &LayerOfPlatform{}, &Platform{}, &Tag{})
+	return nil
+}
+
+func (g *gormStore) UpdateTag(t *Tag) error {
+	tx := g.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	tx.Save(t)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	tx.Commit()
+	if tx.Error != nil {
+		tx.Rollback()
+		return tx.Error
+	}
+
 	return nil
 }
 

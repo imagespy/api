@@ -27,6 +27,16 @@ func (Image) TableName() string {
 	return "imagespy_image"
 }
 
+func (i *Image) HasTag(t *Tag) bool {
+	for _, tag := range i.Tags {
+		if tag.Name == t.Name {
+			return true
+		}
+	}
+
+	return false
+}
+
 type Layer struct {
 	Digest       string
 	ID           int

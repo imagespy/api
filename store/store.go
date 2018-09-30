@@ -16,4 +16,5 @@ type Store interface {
 	FindLatestImageWithTagsByDistinction(distinction string, repository string) (*Image, error)
 	FindImageWithTagsByTag(repository string, tag string) (*Image, error)
 	Migrate() error
+	UpdateTag(*Tag) error
 }
