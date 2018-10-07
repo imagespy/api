@@ -3,7 +3,7 @@ package registry
 import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
-	"github.com/docker/docker/image"
+	dockerImage "github.com/docker/docker/image"
 	imageV1 "github.com/docker/docker/image/v1"
 	reg "github.com/genuinetools/reg/registry"
 	digest "github.com/opencontainers/go-digest"
@@ -11,7 +11,7 @@ import (
 
 type ConfigV2 struct {
 	digest    digest.Digest
-	history   []image.History
+	history   []dockerImage.History
 	mediaType string
 	size      int
 }
@@ -20,7 +20,7 @@ func (c *ConfigV2) Digest() digest.Digest {
 	return c.digest
 }
 
-func (c *ConfigV2) History() ([]image.History, error) {
+func (c *ConfigV2) History() ([]dockerImage.History, error) {
 	return c.history, nil
 }
 
@@ -74,14 +74,14 @@ func (m *ManifestV2) Config() (Config, error) {
 			return nil, err
 		}
 
-		entries := []image.History{}
+		entries := []dockerImage.History{}
 		for _, entry := range mV1.History {
 			e, err := imageV1.HistoryFromConfig([]byte(entry.V1Compatibility), false)
 			if err != nil {
 				return nil, err
 			}
 
-			entries = append([]image.History{e}, entries...)
+			entries = append([]dockerImage.History{e}, entries...)
 		}
 
 		m.config = &ConfigV2{
@@ -127,7 +127,7 @@ type PlatformV2 struct {
 	architecture string
 	digest       digest.Digest
 	features     []string
-	image        *Image
+	image        *image
 	manifest     *ManifestV2
 	os           string
 	osFeatures   []string

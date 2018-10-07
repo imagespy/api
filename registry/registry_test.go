@@ -12,7 +12,7 @@ import (
 func TestImageV1(t *testing.T) {
 	resultLines := []string{}
 
-	img, err := NewImage("quay.io/prometheus/prometheus:v2.3.2", false)
+	img, err := NewImage("quay.io/prometheus/prometheus:v2.3.2", Opts{Insecure: false})
 	assert.NoError(t, err)
 	digest, err := img.Digest()
 	assert.NoError(t, err)
@@ -79,7 +79,7 @@ func TestImageV2(t *testing.T) {
 	for _, tc := range testcases {
 		resultLines := []string{}
 
-		img, err := NewImage(tc.image, false)
+		img, err := NewImage(tc.image, Opts{Insecure: false})
 		assert.NoError(t, err)
 		digest, err := img.Digest()
 		assert.NoError(t, err)

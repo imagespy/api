@@ -1,13 +1,13 @@
 package registry
 
 import (
-	"github.com/docker/docker/image"
+	dockerImage "github.com/docker/docker/image"
 	digest "github.com/opencontainers/go-digest"
 )
 
 type Config interface {
 	Digest() digest.Digest
-	History() ([]image.History, error)
+	History() ([]dockerImage.History, error)
 	MediaType() (string, error)
 	Size() (int, error)
 }

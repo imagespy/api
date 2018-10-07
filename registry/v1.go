@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/docker/distribution/manifest/schema1"
-	"github.com/docker/docker/image"
+	dockerImage "github.com/docker/docker/image"
 	imageV1 "github.com/docker/docker/image/v1"
 	reg "github.com/genuinetools/reg/registry"
 	digest "github.com/opencontainers/go-digest"
@@ -12,14 +12,14 @@ import (
 
 type ConfigV1 struct {
 	digest  digest.Digest
-	history []image.History
+	history []dockerImage.History
 }
 
 func (c *ConfigV1) Digest() digest.Digest {
 	return c.digest
 }
 
-func (c *ConfigV1) History() ([]image.History, error) {
+func (c *ConfigV1) History() ([]dockerImage.History, error) {
 	return c.history, nil
 }
 
@@ -33,7 +33,7 @@ func (c *ConfigV1) Size() (int, error) {
 
 type PlatformV1 struct {
 	digest    digest.Digest
-	image     *Image
+	image     Image
 	manifest  *ManifestV1
 	regClient *reg.Registry
 }
@@ -88,14 +88,14 @@ func NewManifestV1(p *PlatformV1, m *schema1.SignedManifest, manifestDigest dige
 		layers = append([]Layer{&LayerV1{fsLayer.BlobSum}}, layers...)
 	}
 
-	entries := []image.History{}
+	entries := []dockerImage.History{}
 	for _, entry := range m.History {
 		e, err := imageV1.HistoryFromConfig([]byte(entry.V1Compatibility), false)
 		if err != nil {
 			return nil, err
 		}
 
-		entries = append([]image.History{e}, entries...)
+		entries = append([]dockerImage.History{e}, entries...)
 	}
 
 	return &ManifestV1{
