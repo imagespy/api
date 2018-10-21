@@ -33,16 +33,20 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:60ec7e40ad234bb97303768925bdaf225809c6ca7867afc8b18143547dcc2717"
+  digest = "1:070dc4f902705a51422078206b98d721357a441549a9f9e5f2942907d9899795"
   name = "github.com/docker/distribution"
   packages = [
     ".",
+    "configuration",
+    "context",
     "digestset",
     "manifest",
     "manifest/manifestlist",
     "manifest/schema1",
     "manifest/schema2",
+    "notifications",
     "reference",
+    "uuid",
   ]
   pruneopts = "UT"
   revision = "642075f42c027b8a05b7d06f4f132939eb9ed902"
@@ -152,6 +156,22 @@
   pruneopts = "UT"
   revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
   version = "v1.1.1"
+
+[[projects]]
+  digest = "1:c79fb010be38a59d657c48c6ba1d003a8aa651fa56b579d959d74573b7dff8e1"
+  name = "github.com/gorilla/context"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
+  version = "v1.1.1"
+
+[[projects]]
+  digest = "1:e73f5b0152105f18bc131fba127d9949305c8693f8a762588a82a48f61756f5f"
+  name = "github.com/gorilla/mux"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
+  version = "v1.6.2"
 
 [[projects]]
   digest = "1:235ae01f32fb5f12c5f6d2e0e05ab48e651ab31c126e45a4efc4f510810941ac"
@@ -307,6 +327,14 @@
   revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
   version = "v1.1.0"
 
+[[projects]]
+  digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
+  version = "v2.2.1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -315,6 +343,7 @@
     "github.com/docker/distribution/manifest/manifestlist",
     "github.com/docker/distribution/manifest/schema1",
     "github.com/docker/distribution/manifest/schema2",
+    "github.com/docker/distribution/notifications",
     "github.com/docker/docker/api/types",
     "github.com/docker/docker/image",
     "github.com/docker/docker/image/v1",
@@ -323,6 +352,7 @@
     "github.com/go-sql-driver/mysql",
     "github.com/jinzhu/gorm",
     "github.com/opencontainers/go-digest",
+    "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/assert",
   ]
   solver-name = "gps-cdcl"

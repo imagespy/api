@@ -51,3 +51,7 @@
 [[constraint]]
   name = "github.com/go-chi/chi"
   version = "3.3.3"
+
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  version = "1.0.6"

@@ -1,10 +1,17 @@
 package store
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
+
+type Model struct {
+	ID int
+}
 
 type Feature struct {
+	Model
 	CreatedAt time.Time
-	ID        int
 	Name      string
 }
 
@@ -13,9 +20,9 @@ func (Feature) TableName() string {
 }
 
 type Image struct {
+	Model
 	CreatedAt     time.Time
 	Digest        string
-	ID            int
 	Name          string
 	Platforms     []*Platform
 	SchemaVersion int
@@ -37,9 +44,29 @@ func (i *Image) HasTag(t *Tag) bool {
 	return false
 }
 
+func (i *Image) FindTag(name string) (*Tag, error) {
+	for _, t := range i.Tags {
+		if t.Name == name {
+			return t, nil
+		}
+	}
+
+	return nil, fmt.Errorf("image %s does not have tag %s", i.Name, name)
+}
+
+func (i *Image) FindLatestTagByDistiction(d string) (*Tag, error) {
+	for _, t := range i.Tags {
+		if t.IsLatest && t.Distinction == d {
+			return t, nil
+		}
+	}
+
+	return nil, fmt.Errorf("image %s does not have tag with distinction", i.Name, d)
+}
+
 type Layer struct {
+	Model
 	Digest       string
-	ID           int
 	SourceImages []*Image `gorm:"many2many:imagespy_layer_source_images;"`
 }
 
@@ -48,7 +75,7 @@ func (Layer) TableName() string {
 }
 
 type LayerOfPlatform struct {
-	ID         int
+	Model
 	Layer      *Layer
 	LayerID    int
 	Platform   *Platform
@@ -61,8 +88,8 @@ func (LayerOfPlatform) TableName() string {
 }
 
 type OSFeature struct {
+	Model
 	CreatedAt time.Time
-	ID        int
 	Name      string
 }
 
@@ -71,13 +98,12 @@ func (OSFeature) TableName() string {
 }
 
 type Platform struct {
+	Model
 	Architecture   string
 	Created        time.Time
 	CreatedAt      time.Time
 	Features       []*Feature `gorm:"many2many:imagespy_platform_features;"`
-	Image          *Image
 	ImageID        int
-	ID             int
 	Layers         []*Layer
 	ManifestDigest string
 	OS             string
@@ -91,9 +117,9 @@ func (Platform) TableName() string {
 }
 
 type Tag struct {
+	Model
 	Distinction string
 	ImageID     int
-	ID          int
 	IsLatest    bool
 	IsTagged    bool
 	Name        string

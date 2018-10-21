@@ -8,4 +8,13 @@ services:
       MYSQL_ROOT_PASSWORD: root
     image: mysql:8.0.12
     ports:
-      - "33306:3306"
+    - "33306:3306"
+
+  registry:
+    image: registry:2.6.2
+    ports:
+    - "52854:5000"
+    volumes:
+    - "./registry/config.yml:/etc/docker/registry/config.yml"
+    - "./registry/registry.crt:/etc/tls/registry.crt"
+    - "./registry/registry.key:/etc/tls/registry.key"
