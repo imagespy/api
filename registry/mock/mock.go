@@ -92,6 +92,10 @@ func (m *mockRegistry) Image(imageName string) (registry.Image, error) {
 	return nil, fmt.Errorf("Unknown reference for %s", imageName)
 }
 
+func NewRegistry() *mockRegistry {
+	return &mockRegistry{repositories: map[string]*mockRegistryRepository{}}
+}
+
 type mockRegistryRepository struct {
 	registry.Repository
 	name   string
