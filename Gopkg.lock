@@ -158,6 +158,20 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:9893ace0b23cd2382d122e2e74e0d234cdd164329fd352b8260395f935e7d6aa"
+  name = "github.com/golang-migrate/migrate"
+  packages = [
+    ".",
+    "database",
+    "database/mysql",
+    "source",
+    "source/file",
+  ]
+  pruneopts = "UT"
+  revision = "4937cd088f7c7193ee59b319c1c2caa7482aae8e"
+  version = "v3.5.4"
+
+[[projects]]
   digest = "1:c79fb010be38a59d657c48c6ba1d003a8aa651fa56b579d959d74573b7dff8e1"
   name = "github.com/gorilla/context"
   packages = ["."]
@@ -269,9 +283,12 @@
   version = "v1.0.6"
 
 [[projects]]
-  digest = "1:18752d0b95816a1b777505a97f71c7467a8445b8ffb55631a7bf779f6ba4fa83"
+  digest = "1:c40d65817cdd41fac9aa7af8bed56927bb2d6d47e4fea566a74880f5c2b1c41e"
   name = "github.com/stretchr/testify"
-  packages = ["assert"]
+  packages = [
+    "assert",
+    "require",
+  ]
   pruneopts = "UT"
   revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
   version = "v1.2.2"
@@ -350,10 +367,14 @@
     "github.com/genuinetools/reg/registry",
     "github.com/go-chi/chi",
     "github.com/go-sql-driver/mysql",
+    "github.com/golang-migrate/migrate",
+    "github.com/golang-migrate/migrate/database/mysql",
+    "github.com/golang-migrate/migrate/source/file",
     "github.com/jinzhu/gorm",
     "github.com/opencontainers/go-digest",
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/assert",
+    "github.com/stretchr/testify/require",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

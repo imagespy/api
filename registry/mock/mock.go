@@ -23,6 +23,10 @@ func (m *Image) Digest() (string, error) {
 	return m.digest, nil
 }
 
+func (m *Image) Platforms() ([]registry.Platform, error) {
+	return m.platforms, nil
+}
+
 func (m *Image) Repository() registry.Repository {
 	return m.repository
 }
@@ -36,13 +40,16 @@ func (m *Image) Tag() (string, error) {
 }
 
 func NewImage(digest string, name string, platforms []registry.Platform, schemaVersion int, tag string) *Image {
-	return &Image{
+	i := &Image{
 		digest:        digest,
 		name:          name,
 		platforms:     platforms,
+		repository:    &mockRegistryRepository{name: name},
 		schemaVersion: schemaVersion,
 		tag:           tag,
 	}
+	i.repository.images = append(i.repository.images, i)
+	return i
 }
 
 type mockRegistry struct {

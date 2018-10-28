@@ -21,12 +21,17 @@ type Scraper interface {
 }
 
 func NewScraper(reg registry.Registry, s store.Store) Scraper {
-	return &async{reg: reg, store: s}
+	return &async{
+		reg:      reg,
+		store:    s,
+		timeFunc: func() time.Time { return time.Now().UTC() },
+	}
 }
 
 type async struct {
-	reg   registry.Registry
-	store store.Store
+	reg      registry.Registry
+	store    store.Store
+	timeFunc func() time.Time
 }
 
 func (a *async) ScrapeLatestImageForImages(imageNames []string) {
@@ -37,7 +42,7 @@ func (a *async) ScrapeLatestImageForImages(imageNames []string) {
 			continue
 		}
 
-		_, err = ScrapeLatestImageOfRegistryImage(regImg, a.store)
+		_, err = a.ScrapeLatestImageOfRegistryImage(regImg, a.store)
 		if err != nil {
 			log.Error(err)
 			continue
@@ -69,7 +74,7 @@ func (a *async) ScrapeImage(repository, tagRef string) (*store.Image, error) {
 		return nil, err
 	}
 	if len(imageList) == 0 {
-		image, err := CreateStoreImageFromRegistryImage(vp.Distinction(), regImage)
+		image, err := a.CreateStoreImageFromRegistryImage(vp.Distinction(), regImage)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +104,7 @@ func (a *async) ScrapeImage(repository, tagRef string) (*store.Image, error) {
 	return image, nil
 }
 
-func ScrapeLatestImageOfRegistryImage(i registry.Image, s store.Store) (*store.Image, error) {
+func (a *async) ScrapeLatestImageOfRegistryImage(i registry.Image, s store.Store) (*store.Image, error) {
 	regImgTag, err := i.Tag()
 	if err != nil {
 		return nil, err
@@ -165,7 +170,7 @@ func ScrapeLatestImageOfRegistryImage(i registry.Image, s store.Store) (*store.I
 
 	var latestImage *store.Image
 	if currentImage == nil {
-		latestImage, err = CreateStoreImageFromRegistryImage(latestVP.Distinction(), latestRegImage)
+		latestImage, err = a.CreateStoreImageFromRegistryImage(latestVP.Distinction(), latestRegImage)
 		if err != nil {
 			return nil, err
 		}
@@ -179,7 +184,7 @@ func ScrapeLatestImageOfRegistryImage(i registry.Image, s store.Store) (*store.I
 	}
 
 	if currentImage != nil && currentImage.Digest != latestRegImageDigest {
-		latestImage, err = CreateStoreImageFromRegistryImage(latestVP.Distinction(), latestRegImage)
+		latestImage, err = a.CreateStoreImageFromRegistryImage(latestVP.Distinction(), latestRegImage)
 		if err != nil {
 			return nil, err
 		}
@@ -243,7 +248,7 @@ func ScrapeLatestImageOfRegistryImage(i registry.Image, s store.Store) (*store.I
 // 	return nil
 // }
 
-func CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image) (*store.Image, error) {
+func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image) (*store.Image, error) {
 	imageDigest, err := regImg.Digest()
 	if err != nil {
 		return nil, err
@@ -255,11 +260,11 @@ func CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image
 	}
 
 	image := &store.Image{
-		CreatedAt:     time.Now().UTC(),
+		CreatedAt:     a.timeFunc(),
 		Digest:        imageDigest,
 		Name:          regImg.Repository().FullName(),
 		SchemaVersion: imageSV,
-		ScrapedAt:     time.Now().UTC(),
+		ScrapedAt:     a.timeFunc(),
 	}
 	tagName, err := regImg.Tag()
 	if err != nil {
@@ -268,7 +273,7 @@ func CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image
 
 	tag := &store.Tag{
 		Distinction: distinction,
-		IsLatest:    true,
+		IsLatest:    false,
 		IsTagged:    true,
 		Name:        tagName,
 	}
@@ -294,8 +299,8 @@ func CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image
 
 		platform := &store.Platform{
 			Architecture:   p.Architecture(),
-			CreatedAt:      time.Now().UTC(),
-			Created:        time.Now().UTC(),
+			CreatedAt:      a.timeFunc(),
+			Created:        a.timeFunc(),
 			ImageID:        image.ID,
 			ManifestDigest: regManifestConfig.Digest().String(),
 			OS:             p.OS(),
@@ -305,14 +310,14 @@ func CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image
 
 		for _, name := range p.Features() {
 			platform.Features = append(platform.Features, &store.Feature{
-				CreatedAt: time.Now().UTC(),
+				CreatedAt: a.timeFunc(),
 				Name:      name,
 			})
 		}
 
 		for _, name := range p.OSFeatures() {
 			platform.OSFeatures = append(platform.OSFeatures, &store.OSFeature{
-				CreatedAt: time.Now().UTC(),
+				CreatedAt: a.timeFunc(),
 				Name:      name,
 			})
 		}
