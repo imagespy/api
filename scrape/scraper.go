@@ -42,7 +42,7 @@ func (a *async) ScrapeLatestImageForImages(imageNames []string) {
 			continue
 		}
 
-		_, err = a.ScrapeLatestImageOfRegistryImage(regImg, a.store)
+		err = a.ScrapeLatestImage(regImg)
 		if err != nil {
 			log.Error(err)
 			continue
@@ -50,78 +50,72 @@ func (a *async) ScrapeLatestImageForImages(imageNames []string) {
 	}
 }
 
-func (a *async) ScrapeImage(repository, tagRef string) (*store.Image, error) {
-	if tagRef == "" {
-		return nil, fmt.Errorf("Variable tagRef is empty")
-	}
-
-	imageClient := a.store.Images()
-	imageList, err := imageClient.List(store.ImageListOptions{
-		Name:    repository,
-		TagName: tagRef,
-	})
+func (a *async) ScrapeImage(i registry.Image) error {
+	digest, err := i.Digest()
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("ScrapeImage: retrieving digest failed: %s", err)
 	}
 
-	if len(imageList) > 0 {
-		return nil, fmt.Errorf("Expected only one tagged image for %s:%s, got %d", repository, tagRef, len(imageList))
+	tagRef, err := i.Tag()
+	if err != nil {
+		return fmt.Errorf("ScrapeImage: retrieving tag failed: %s", err)
 	}
 
 	vp := versionparser.FindForVersion(tagRef)
-	regImage, err := a.reg.Image(fmt.Sprintf("%s:%s", repository, tagRef))
-	if err != nil {
-		return nil, err
-	}
-	if len(imageList) == 0 {
-		image, err := a.CreateStoreImageFromRegistryImage(vp.Distinction(), regImage)
-		if err != nil {
-			return nil, err
+	image, err := a.store.Images().Get(digest)
+	if err == nil {
+		newTag := &store.Tag{
+			Distinction: vp.Distinction(),
+			IsLatest:    false,
+			IsTagged:    true,
+			Name:        tagRef,
+		}
+		if image.HasTag(newTag) == false {
+			image.Tags = append(image.Tags, newTag)
+			err := a.store.Images().Update(image)
+			if err != nil {
+				return fmt.Errorf("ScrapeImage: updating image failed: %s", err)
+			}
 		}
 
-		err = imageClient.Create(image)
+		return nil
+	}
+
+	if err != nil && err == store.ErrDoesNotExist {
+		image, err := a.CreateStoreImageFromRegistryImage(vp.Distinction(), i)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		return image, nil
+		err = a.store.Images().Create(image)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
-	image := imageList[0]
-	tag := &store.Tag{
-		Distinction: vp.Distinction(),
-		ImageID:     image.ID,
-		IsLatest:    false,
-		IsTagged:    true,
-		Name:        tagRef,
-	}
-	image.Tags = append(image.Tags, tag)
-	err = imageClient.Update(image)
-	if err != nil {
-		return nil, err
-	}
-
-	return image, nil
+	return fmt.Errorf("ScrapeImage: reading image with digest %s failed: %s", digest, err)
 }
 
-func (a *async) ScrapeLatestImageOfRegistryImage(i registry.Image, s store.Store) (*store.Image, error) {
+func (a *async) ScrapeLatestImage(i registry.Image) error {
 	regImgTag, err := i.Tag()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	b := true
-	images, err := s.Images().List(store.ImageListOptions{
+	images, err := a.store.Images().List(store.ImageListOptions{
 		Name:        i.Repository().FullName(),
 		TagIsLatest: &b,
 		TagName:     regImgTag,
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if len(images) > 1 {
-		return nil, fmt.Errorf("query for latest tag of %s:%s returned ambiguous result: expected 1 got %d", i.Repository().FullName(), regImgTag, len(images))
+		return fmt.Errorf("query for latest tag of %s:%s returned ambiguous result: expected 1 got %d", i.Repository().FullName(), regImgTag, len(images))
 	}
 
 	var currentImage *store.Image
@@ -130,13 +124,13 @@ func (a *async) ScrapeLatestImageOfRegistryImage(i registry.Image, s store.Store
 		currentImage = images[0]
 		currentTag, err = currentImage.FindTag(regImgTag)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	regImages, err := i.Repository().Images()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	latestVP := versionparser.FindForVersion(regImgTag)
@@ -144,7 +138,7 @@ func (a *async) ScrapeLatestImageOfRegistryImage(i registry.Image, s store.Store
 	for _, regImageItem := range regImages {
 		currentImageTag, err := regImageItem.Tag()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		currentVP := versionparser.FindForVersion(currentImageTag)
@@ -165,45 +159,45 @@ func (a *async) ScrapeLatestImageOfRegistryImage(i registry.Image, s store.Store
 
 	latestRegImageDigest, err := latestRegImage.Digest()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var latestImage *store.Image
 	if currentImage == nil {
 		latestImage, err = a.CreateStoreImageFromRegistryImage(latestVP.Distinction(), latestRegImage)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		err = s.Images().Create(latestImage)
+		err = a.store.Images().Create(latestImage)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		return latestImage, nil
+		return nil
 	}
 
 	if currentImage != nil && currentImage.Digest != latestRegImageDigest {
 		latestImage, err = a.CreateStoreImageFromRegistryImage(latestVP.Distinction(), latestRegImage)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		err = s.Images().Create(latestImage)
+		err = a.store.Images().Create(latestImage)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		currentTag.IsLatest = false
-		err = s.Images().Update(currentImage)
+		err = a.store.Images().Update(currentImage)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		return latestImage, nil
+		return nil
 	}
 
-	return currentImage, nil
+	return nil
 }
 
 // func (s *async) scrapeLatestImages() error {
