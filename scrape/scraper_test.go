@@ -220,7 +220,7 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 			},
 		},
 		{
-			name:          "When a newer version of a tag with the same distiction is added it sets the newer version to be the latest verison",
+			name:          "When a newer version of an image with a different tag but the same distinction is added it sets the newer version to be the latest verison",
 			imageToScrape: registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
 			additionalImagesInRegistry: []registry.Image{
 				registryMock.NewImage("DEF", "dev.local/unittest", []registry.Platform{}, 2, "2"),
@@ -252,6 +252,49 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 				&store.Image{
 					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
 					Digest:        "DEF",
+					Model:         store.Model{ID: 2},
+					Name:          "dev.local/unittest",
+					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+					Tags: []*store.Tag{
+						&store.Tag{Distinction: "major", ImageID: 2, IsLatest: true, IsTagged: true, Model: store.Model{ID: 2}, Name: "2"},
+					},
+				},
+			},
+		},
+		{
+			name:          "When a newer version of an image with the same tag but different digest is added it sets the newer version to be the latest version",
+			imageToScrape: registryMock.NewImage("GHI", "dev.local/unittest", []registry.Platform{}, 2, "2"),
+			additionalImagesInRegistry: []registry.Image{
+				registryMock.NewImage("DEF", "dev.local/unittest", []registry.Platform{}, 2, "2"),
+			},
+			imagesInDatabase: []*store.Image{
+				{
+					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					Digest:        "DEF",
+					Name:          "dev.local/unittest",
+					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+					Tags: []*store.Tag{
+						&store.Tag{Distinction: "major", IsLatest: true, IsTagged: true, Name: "2"},
+					},
+				},
+			},
+			expectedImages: []*store.Image{
+				&store.Image{
+					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					Digest:        "DEF",
+					Model:         store.Model{ID: 1},
+					Name:          "dev.local/unittest",
+					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+					Tags: []*store.Tag{
+						&store.Tag{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 1}, Name: "2"},
+					},
+				},
+				&store.Image{
+					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					Digest:        "GHI",
 					Model:         store.Model{ID: 2},
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),

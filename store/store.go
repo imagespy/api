@@ -26,8 +26,12 @@ type ImageStore interface {
 }
 
 type ImageGetOptions struct {
-	Digest string
-	ID     int
+	Digest         string
+	ID             int
+	Name           string
+	TagDistinction string
+	TagIsLatest    *bool
+	TagName        string
 }
 
 type ImageListOptions struct {
@@ -40,6 +44,7 @@ type ImageListOptions struct {
 
 type TagStore interface {
 	Get(o TagGetOptions) (*Tag, error)
+	List(o TagListOptions) ([]*Tag, error)
 	Update(*Tag) error
 }
 
@@ -49,4 +54,8 @@ type TagGetOptions struct {
 	ImageName   string
 	IsLatest    *bool
 	Name        string
+}
+
+type TagListOptions struct {
+	ImageID int
 }

@@ -17,7 +17,8 @@ type Work struct {
 }
 
 type Scraper interface {
-	ScrapeLatestImageForImages(imageNames []string)
+	ScrapeImage(i registry.Image) error
+	ScrapeLatestImage(i registry.Image) error
 }
 
 func NewScraper(reg registry.Registry, s store.Store) Scraper {

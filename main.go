@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"net/http"
-	"os"
+
+	"github.com/imagespy/api/registry"
+	"github.com/imagespy/api/scrape"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/imagespy/api/store/gorm"
@@ -35,10 +37,11 @@ func main() {
 
 	defer s.Close()
 
-	if os.Getenv("MIGRATE") == "1" {
-		s.Migrate()
+	reg, err := registry.NewRegistry("", registry.Opts{})
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	handler := web.Init(s)
+	handler := web.Init(scrape.NewScraper(reg, s), s)
 	log.Fatal(http.ListenAndServe(*httpAddress, handler))
 }

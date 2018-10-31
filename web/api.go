@@ -33,7 +33,8 @@ type latestImageSerialize struct {
 }
 
 type Handler struct {
-	imageSerializer func(image *store.Image, latestImage *store.Image) ([]byte, error)
+	imageSerializer func(image *store.Image, tags []*store.Tag, latestImage *store.Image, latestTags []*store.Tag) ([]byte, error)
+	scraper         scrape.Scraper
 	Store           store.Store
 	eventDedup      map[string]struct{}
 	eventDedupMutex *sync.RWMutex
@@ -41,15 +42,84 @@ type Handler struct {
 
 func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
 	imageID := chi.URLParam(r, "*")
-	image, latestImage, err := h.scrapeImageAndLatestImage(imageID)
+	address, path, tagInput, _, err := registry.ParseImage(imageID)
 	if err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	b, err := h.imageSerializer(image, latestImage)
+
+	image, err := h.Store.Images().Get(store.ImageGetOptions{
+		Name:    address + "/" + path,
+		TagName: tagInput,
+	})
 	if err != nil {
-		log.Error(err)
+		if err != store.ErrDoesNotExist {
+			log.Errorf("reading initial image: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		regImage, err := registry.NewImage(imageID, registry.Opts{})
+		if err != nil {
+			log.Errorf("instantiating registry image: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = h.scraper.ScrapeImage(regImage)
+		if err != nil {
+			log.Errorf("scraping registry image: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = h.scraper.ScrapeLatestImage(regImage)
+		if err != nil {
+			log.Errorf("scraping latest registry image: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	image, err = h.Store.Images().Get(store.ImageGetOptions{
+		Name:    address + "/" + path,
+		TagName: tagInput,
+	})
+	if err != nil {
+		log.Errorf("reading image again: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	tags, err := h.Store.Tags().List(store.TagListOptions{ImageID: image.ID})
+	if err != nil {
+		log.Errorf("reading tags of current image: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	isLatestTag := true
+	latestImage, err := h.Store.Images().Get(store.ImageGetOptions{
+		Name:           address + "/" + path,
+		TagDistinction: versionparser.FindForVersion(tagInput).Distinction(),
+		TagIsLatest:    &isLatestTag,
+	})
+	if err != nil {
+		log.Errorf("reading latest image: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	latestTags, err := h.Store.Tags().List(store.TagListOptions{ImageID: latestImage.ID})
+	if err != nil {
+		log.Errorf("reading tags of latest image: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	b, err := h.imageSerializer(image, tags, latestImage, latestTags)
+	if err != nil {
+		log.Errorf("serializing image, latest image and tags: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -108,112 +178,21 @@ func (h *Handler) registryEvent(w http.ResponseWriter, r *http.Request) {
 					h.eventDedupMutex.Unlock()
 				}()
 
-				_, _, err := h.scrapeImageAndLatestImage(imageName)
-				if err != nil {
-					log.Error(err)
-				}
+				// _, _, err := h.scrapeImageAndLatestImage(imageName)
+				// if err != nil {
+				// 	log.Error(err)
+				// }
 			}()
 		}
 	}
 }
 
-func (h *Handler) scrapeImageAndLatestImage(imageName string) (*store.Image, *store.Image, error) {
-	log.Debugf("Scraping image '%s'", imageName)
-	regImage, err := registry.NewImage(imageName, registry.Opts{Insecure: true})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	tag, err := regImage.Tag()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	images, err := h.Store.Images().List(store.ImageListOptions{
-		Name:    regImage.Repository().FullName(),
-		TagName: tag,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	vp := versionparser.FindForVersion(tag)
-	var image *store.Image
-	if len(images) == 0 {
-		digest, err := regImage.Digest()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		image, err = h.Store.Images().Get(digest)
-		if err != nil {
-			if err == store.ErrDoesNotExist {
-				log.Debug("Creating new image")
-				image, err = scrape.CreateStoreImageFromRegistryImage(vp.Distinction(), regImage)
-				if err != nil {
-					return nil, nil, err
-				}
-
-				err = h.Store.Images().Create(image)
-				if err != nil {
-					return nil, nil, err
-				}
-			} else {
-				return nil, nil, err
-			}
-		}
-
-		_, err = scrape.ScrapeLatestImageOfRegistryImage(regImage, h.Store)
-		if err != nil {
-			return nil, nil, err
-		}
-	} else {
-		log.Debug("Updating existing image")
-		image = images[0]
-		t := &store.Tag{
-			Distinction: vp.Distinction(),
-			ImageID:     image.ID,
-			IsLatest:    false,
-			IsTagged:    true,
-			Name:        tag,
-		}
-		image.Tags = append(image.Tags, t)
-		err = h.Store.Images().Update(image)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		_, err = scrape.ScrapeLatestImageOfRegistryImage(regImage, h.Store)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	fmt.Printf("%#v\n", image)
-
-	b := true
-	latestImages, err := h.Store.Images().List(store.ImageListOptions{
-		Name:           regImage.Repository().FullName(),
-		TagIsLatest:    &b,
-		TagDistinction: vp.Distinction(),
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if len(latestImages) == 0 {
-		return nil, nil, fmt.Errorf("no latest image found")
-	}
-
-	return image, latestImages[0], nil
-}
-
-func jsonImageSerializer(image *store.Image, latestImage *store.Image) ([]byte, error) {
+func jsonImageSerializer(image *store.Image, tags []*store.Tag, latestImage *store.Image, latestTags []*store.Tag) ([]byte, error) {
 	imageSerialized := &imageSerialize{
 		Digest: image.Digest,
 		Name:   image.Name,
 	}
-	for _, tag := range image.Tags {
+	for _, tag := range tags {
 		imageSerialized.Tags = append(imageSerialized.Tags, tag.Name)
 	}
 
@@ -221,7 +200,7 @@ func jsonImageSerializer(image *store.Image, latestImage *store.Image) ([]byte, 
 		Digest: latestImage.Digest,
 		Name:   latestImage.Name,
 	}
-	for _, latestTag := range latestImage.Tags {
+	for _, latestTag := range latestTags {
 		latestImageSerialized.Tags = append(latestImageSerialized.Tags, latestTag.Name)
 	}
 
@@ -234,11 +213,12 @@ func jsonImageSerializer(image *store.Image, latestImage *store.Image) ([]byte, 
 	return b, nil
 }
 
-func Init(store store.Store) http.Handler {
+func Init(scraper scrape.Scraper, store store.Store) http.Handler {
 	h := &Handler{
 		eventDedup:      map[string]struct{}{},
 		eventDedupMutex: &sync.RWMutex{},
 		imageSerializer: jsonImageSerializer,
+		scraper:         scraper,
 		Store:           store,
 	}
 	r := chi.NewRouter()

@@ -112,10 +112,11 @@ func (gi *gormImage) Create(i *store.Image) error {
 }
 
 func (gi *gormImage) Get(o store.ImageGetOptions) (*store.Image, error) {
-	if o.Digest == "" && o.ID == 0 {
-		return nil, fmt.Errorf("Digest and ID not set in ImageGetOptions")
+	if o.Digest == "" && o.ID == 0 && o.Name == "" {
+		return nil, fmt.Errorf("Digest, ID and Name not set in ImageGetOptions")
 	}
 
+	joinWithTag := false
 	whereQuery := []string{}
 	whereValues := []interface{}{}
 	if o.Digest != "" {
@@ -128,8 +129,40 @@ func (gi *gormImage) Get(o store.ImageGetOptions) (*store.Image, error) {
 		whereValues = append(whereValues, o.ID)
 	}
 
+	if o.Name != "" {
+		whereQuery = append(whereQuery, "imagespy_image.name = ?")
+		whereValues = append(whereValues, o.Name)
+	}
+
+	if o.TagDistinction != "" {
+		whereQuery = append(whereQuery, "imagespy_tag.distinction = ?")
+		whereValues = append(whereValues, o.TagDistinction)
+		joinWithTag = true
+	}
+
+	if o.TagIsLatest != nil {
+		whereQuery = append(whereQuery, "imagespy_tag.is_latest = ?")
+		if *o.TagIsLatest {
+			whereValues = append(whereValues, "1")
+		} else {
+			whereValues = append(whereValues, "0")
+		}
+		joinWithTag = true
+	}
+
+	if o.TagName != "" {
+		whereQuery = append(whereQuery, "imagespy_tag.name = ?")
+		whereValues = append(whereValues, o.TagName)
+		joinWithTag = true
+	}
+
+	q := gi.db
+	if joinWithTag {
+		q = q.Joins("inner join imagespy_tag on imagespy_tag.image_id = imagespy_image.id")
+	}
+
 	i := &store.Image{}
-	result := gi.db.Where(strings.Join(whereQuery, " AND "), whereValues...).Take(i)
+	result := q.Where(strings.Join(whereQuery, " AND "), whereValues...).Order("created_at desc").Take(i)
 	if result.Error != nil {
 		if result.Error == gormlib.ErrRecordNotFound {
 			return nil, store.ErrDoesNotExist
@@ -282,6 +315,16 @@ func (g *gormTag) Get(o store.TagGetOptions) (*store.Tag, error) {
 	}
 
 	return tag, nil
+}
+
+func (g *gormTag) List(o store.TagListOptions) ([]*store.Tag, error) {
+	tags := []*store.Tag{}
+	result := g.db.Where("imagespy_tag.image_id = ?", o.ImageID).Find(&tags)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return tags, nil
 }
 
 func (g *gormTag) Update(t *store.Tag) error {
