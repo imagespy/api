@@ -14,7 +14,7 @@ type Image struct {
 	digest        string
 	name          string
 	platforms     []registry.Platform
-	repository    *mockRegistryRepository
+	repository    *mockRepository
 	schemaVersion int
 	tag           string
 }
@@ -44,25 +44,26 @@ func NewImage(digest string, name string, platforms []registry.Platform, schemaV
 		digest:        digest,
 		name:          name,
 		platforms:     platforms,
-		repository:    &mockRegistryRepository{name: name},
 		schemaVersion: schemaVersion,
 		tag:           tag,
 	}
-	i.repository.images = append(i.repository.images, i)
 	return i
 }
 
 type mockRegistry struct {
 	registry.Registry
-	repositories map[string]*mockRegistryRepository
+	repositories map[string]*mockRepository
 }
 
 func (m *mockRegistry) AddImage(i *Image) {
 	r, ok := m.repositories[i.name]
 	if ok {
+		i.repository = r
 		r.images = append(r.images, i)
 	} else {
-		m.repositories[i.name] = &mockRegistryRepository{name: i.name, images: []registry.Image{i}}
+		repository := &mockRepository{name: i.name, images: []registry.Image{i}}
+		i.repository = repository
+		m.repositories[i.name] = repository
 	}
 }
 
@@ -100,20 +101,20 @@ func (m *mockRegistry) Image(imageName string) (registry.Image, error) {
 }
 
 func NewRegistry() *mockRegistry {
-	return &mockRegistry{repositories: map[string]*mockRegistryRepository{}}
+	return &mockRegistry{repositories: map[string]*mockRepository{}}
 }
 
-type mockRegistryRepository struct {
+type mockRepository struct {
 	registry.Repository
 	name   string
 	images []registry.Image
 }
 
-func (m *mockRegistryRepository) FullName() string {
+func (m *mockRepository) FullName() string {
 	return m.name
 }
 
-func (m *mockRegistryRepository) Images() ([]registry.Image, error) {
+func (m *mockRepository) Images() ([]registry.Image, error) {
 	return m.images, nil
 }
 

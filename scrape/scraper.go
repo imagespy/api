@@ -205,7 +205,7 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 
 	if currentTag != nil && currentTag.IsLatest == true {
 		currentTag.IsLatest = false
-		err := a.store.Tags().Update(latestTag)
+		err := a.store.Tags().Update(currentTag)
 		if err != nil {
 			return err
 		}

@@ -3,6 +3,7 @@ package scrape
 import (
 	"database/sql"
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -32,11 +33,11 @@ func (m *timeMock) Time() time.Time {
 }
 
 type testcase struct {
-	name             string
-	imageToScrape    registry.Image
-	imagesInDatabase []*store.Image
-	imagesInRegistry []registry.Image
-	expectedImages   []*store.Image
+	name                       string
+	imageToScrape              registry.Image
+	imagesInDatabase           []*store.Image
+	additionalImagesInRegistry []registry.Image
+	expectedImages             []*store.Image
 }
 
 func executeTest(t *testing.T, tc testcase, funcToTest string) {
@@ -85,7 +86,8 @@ func executeTest(t *testing.T, tc testcase, funcToTest string) {
 		}
 
 		mockRegistry := registryMock.NewRegistry()
-		for _, i := range tc.imagesInRegistry {
+		mockRegistry.AddImage(tc.imageToScrape.(*registryMock.Image))
+		for _, i := range tc.additionalImagesInRegistry {
 			mockRegistry.AddImage(i.(*registryMock.Image))
 		}
 
@@ -104,6 +106,8 @@ func executeTest(t *testing.T, tc testcase, funcToTest string) {
 		storedImages, err := s.Images().List(store.ImageListOptions{})
 		require.NoError(t, err)
 
+		sort.Slice(tc.expectedImages, func(i, j int) bool { return tc.expectedImages[i].ID < tc.expectedImages[j].ID })
+		sort.Slice(storedImages, func(i, j int) bool { return storedImages[i].ID < storedImages[j].ID })
 		assert.EqualValues(t, tc.expectedImages, storedImages)
 	})
 }
@@ -113,9 +117,6 @@ func TestAsync_ScrapeImage(t *testing.T) {
 		{
 			name:          "When the image has not been scraped it scrapes the image",
 			imageToScrape: registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
-			imagesInRegistry: []registry.Image{
-				registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
-			},
 			expectedImages: []*store.Image{
 				&store.Image{
 					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
@@ -133,9 +134,8 @@ func TestAsync_ScrapeImage(t *testing.T) {
 		{
 			name:          "When the image has already been scraped but the tag does not exist it adds the tag",
 			imageToScrape: registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1.1"),
-			imagesInRegistry: []registry.Image{
+			additionalImagesInRegistry: []registry.Image{
 				registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
-				registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1.1"),
 			},
 			imagesInDatabase: []*store.Image{
 				{
@@ -176,9 +176,6 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 		{
 			name:          "When there is not latest image it scrapes the image",
 			imageToScrape: registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
-			imagesInRegistry: []registry.Image{
-				registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
-			},
 			expectedImages: []*store.Image{
 				&store.Image{
 					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
@@ -196,9 +193,6 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 		{
 			name:          "When the image exists but the tag is not flagged as latest it marks the tag as latest",
 			imageToScrape: registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
-			imagesInRegistry: []registry.Image{
-				registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
-			},
 			imagesInDatabase: []*store.Image{
 				{
 					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
@@ -221,6 +215,49 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 					SchemaVersion: 2,
 					Tags: []*store.Tag{
 						&store.Tag{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
+					},
+				},
+			},
+		},
+		{
+			name:          "When a newer version of a tag with the same distiction is added it sets the newer version to be the latest verison",
+			imageToScrape: registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
+			additionalImagesInRegistry: []registry.Image{
+				registryMock.NewImage("DEF", "dev.local/unittest", []registry.Platform{}, 2, "2"),
+			},
+			imagesInDatabase: []*store.Image{
+				{
+					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					Digest:        "ABC",
+					Name:          "dev.local/unittest",
+					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+					Tags: []*store.Tag{
+						&store.Tag{Distinction: "major", IsLatest: true, IsTagged: true, Name: "1"},
+					},
+				},
+			},
+			expectedImages: []*store.Image{
+				&store.Image{
+					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					Digest:        "ABC",
+					Model:         store.Model{ID: 1},
+					Name:          "dev.local/unittest",
+					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+					Tags: []*store.Tag{
+						&store.Tag{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
+					},
+				},
+				&store.Image{
+					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					Digest:        "DEF",
+					Model:         store.Model{ID: 2},
+					Name:          "dev.local/unittest",
+					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+					Tags: []*store.Tag{
+						&store.Tag{Distinction: "major", ImageID: 2, IsLatest: true, IsTagged: true, Model: store.Model{ID: 2}, Name: "2"},
 					},
 				},
 			},
