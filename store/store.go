@@ -15,13 +15,19 @@ type Store interface {
 	// FindImageWithTagsByTag(repository string, tag string) (*Image, error)
 	// UpdateTag(*Tag) error
 	Images() ImageStore
+	Tags() TagStore
 }
 
 type ImageStore interface {
 	Create(i *Image) error
-	Get(digest string) (*Image, error)
+	Get(o ImageGetOptions) (*Image, error)
 	List(o ImageListOptions) ([]*Image, error)
 	Update(i *Image) error
+}
+
+type ImageGetOptions struct {
+	Digest string
+	ID     int
 }
 
 type ImageListOptions struct {
@@ -30,4 +36,17 @@ type ImageListOptions struct {
 	TagDistinction string
 	TagIsLatest    *bool
 	TagName        string
+}
+
+type TagStore interface {
+	Get(o TagGetOptions) (*Tag, error)
+	Update(*Tag) error
+}
+
+type TagGetOptions struct {
+	Distinction string
+	ImageID     int
+	ImageName   string
+	IsLatest    *bool
+	Name        string
 }

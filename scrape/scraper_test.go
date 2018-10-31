@@ -145,7 +145,7 @@ func TestAsync_ScrapeImage(t *testing.T) {
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
 					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
+						&store.Tag{Distinction: "major", IsLatest: false, IsTagged: true, Name: "1"},
 					},
 				},
 			},
@@ -168,5 +168,66 @@ func TestAsync_ScrapeImage(t *testing.T) {
 
 	for _, tc := range testcases {
 		executeTest(t, tc, "ScrapeImage")
+	}
+}
+
+func TestAsync_ScrapeLatestImage(t *testing.T) {
+	testcases := []testcase{
+		{
+			name:          "When there is not latest image it scrapes the image",
+			imageToScrape: registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
+			imagesInRegistry: []registry.Image{
+				registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
+			},
+			expectedImages: []*store.Image{
+				&store.Image{
+					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					Digest:        "ABC",
+					Model:         store.Model{ID: 1},
+					Name:          "dev.local/unittest",
+					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+					Tags: []*store.Tag{
+						&store.Tag{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
+					},
+				},
+			},
+		},
+		{
+			name:          "When the image exists but the tag is not flagged as latest it marks the tag as latest",
+			imageToScrape: registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
+			imagesInRegistry: []registry.Image{
+				registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
+			},
+			imagesInDatabase: []*store.Image{
+				{
+					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					Digest:        "ABC",
+					Name:          "dev.local/unittest",
+					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+					Tags: []*store.Tag{
+						&store.Tag{Distinction: "major", IsLatest: false, IsTagged: true, Name: "1"},
+					},
+				},
+			},
+			expectedImages: []*store.Image{
+				&store.Image{
+					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					Digest:        "ABC",
+					Model:         store.Model{ID: 1},
+					Name:          "dev.local/unittest",
+					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+					Tags: []*store.Tag{
+						&store.Tag{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		executeTest(t, tc, "ScrapeLatestImage")
 	}
 }

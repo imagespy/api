@@ -16,6 +16,10 @@ func (g *gorm) Images() store.ImageStore {
 	return &gormImage{db: g.db}
 }
 
+func (g *gorm) Tags() store.TagStore {
+	return &gormTag{db: g.db}
+}
+
 func (g *gorm) Close() error {
 	return g.db.Close()
 }
@@ -107,9 +111,25 @@ func (gi *gormImage) Create(i *store.Image) error {
 	return nil
 }
 
-func (gi *gormImage) Get(digest string) (*store.Image, error) {
+func (gi *gormImage) Get(o store.ImageGetOptions) (*store.Image, error) {
+	if o.Digest == "" && o.ID == 0 {
+		return nil, fmt.Errorf("Digest and ID not set in ImageGetOptions")
+	}
+
+	whereQuery := []string{}
+	whereValues := []interface{}{}
+	if o.Digest != "" {
+		whereQuery = append(whereQuery, "imagespy_image.digest = ?")
+		whereValues = append(whereValues, o.Digest)
+	}
+
+	if o.ID != 0 {
+		whereQuery = append(whereQuery, "imagespy_image.id = ?")
+		whereValues = append(whereValues, o.ID)
+	}
+
 	i := &store.Image{}
-	result := gi.db.Where("imagespy_image.digest = ?", digest).Preload("Tags").Preload("Platforms")
+	result := gi.db.Where(strings.Join(whereQuery, " AND "), whereValues...).Take(i)
 	if result.Error != nil {
 		if result.Error == gormlib.ErrRecordNotFound {
 			return nil, store.ErrDoesNotExist
@@ -122,48 +142,59 @@ func (gi *gormImage) Get(digest string) (*store.Image, error) {
 }
 
 func (gi *gormImage) List(o store.ImageListOptions) ([]*store.Image, error) {
-	whereQuery := []string{}
-	whereValues := []interface{}{}
+	imageWhereQuery := []string{}
+	imageWhereValues := []interface{}{}
 	if o.Digest != "" {
-		whereQuery = append(whereQuery, "imagespy_image.digest = ?")
-		whereValues = append(whereValues, o.Digest)
+		imageWhereQuery = append(imageWhereQuery, "imagespy_image.digest = ?")
+		imageWhereValues = append(imageWhereValues, o.Digest)
 	}
 
 	if o.Name != "" {
-		whereQuery = append(whereQuery, "imagespy_image.name = ?")
-		whereValues = append(whereValues, o.Name)
+		imageWhereQuery = append(imageWhereQuery, "imagespy_image.name = ?")
+		imageWhereValues = append(imageWhereValues, o.Name)
 	}
 
+	images := []*store.Image{}
+	result := gi.db.Where(strings.Join(imageWhereQuery, " AND "), imageWhereValues...).Order("id desc").Find(&images)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	tagWhereQuery := []string{}
+	tagWhereValues := []interface{}{}
 	if o.TagDistinction != "" {
-		whereQuery = append(whereQuery, "imagespy_tag.distinction = ?")
-		whereValues = append(whereValues, o.TagDistinction)
+		tagWhereQuery = append(tagWhereQuery, "imagespy_tag.distinction = ?")
+		tagWhereValues = append(tagWhereValues, o.TagDistinction)
 	}
 
 	if o.TagIsLatest != nil {
-		whereQuery = append(whereQuery, "imagespy_tag.is_latest = ?")
+		tagWhereQuery = append(tagWhereQuery, "imagespy_tag.is_latest = ?")
 		if *o.TagIsLatest {
-			whereValues = append(whereValues, "1")
+			tagWhereValues = append(tagWhereValues, "1")
 		} else {
-			whereValues = append(whereValues, "0")
+			tagWhereValues = append(tagWhereValues, "0")
 		}
 	}
 
 	if o.TagName != "" {
-		whereQuery = append(whereQuery, "imagespy_tag.name = ?")
-		whereValues = append(whereValues, o.TagName)
+		tagWhereQuery = append(tagWhereQuery, "imagespy_tag.name = ?")
+		tagWhereValues = append(tagWhereValues, o.TagName)
 	}
 
-	i := []*store.Image{}
-	result := gi.db.Where(strings.Join(whereQuery, " AND "), whereValues...).Joins("inner join imagespy_tag on imagespy_tag.image_id = imagespy_image.id").Order("id desc").Preload("Tags").Find(&i)
-	if result.Error != nil {
-		if result.Error == gormlib.ErrRecordNotFound {
-			return nil, store.ErrDoesNotExist
+	for _, image := range images {
+		tmpQ := make([]string, len(tagWhereQuery))
+		copy(tmpQ, tagWhereQuery)
+		tmpQ = append(tmpQ, "imagespy_tag.image_id = ?")
+		tmpW := make([]interface{}, len(tagWhereValues))
+		copy(tmpW, tagWhereValues)
+		tmpW = append(tmpW, image.ID)
+		result := gi.db.Where(strings.Join(tmpQ, " AND "), tmpW...).Find(&image.Tags)
+		if result.Error != nil {
+			return nil, result.Error
 		}
-
-		return nil, result.Error
 	}
 
-	return i, nil
+	return images, nil
 }
 
 func (gi *gormImage) Update(i *store.Image) error {
@@ -172,7 +203,7 @@ func (gi *gormImage) Update(i *store.Image) error {
 		return tx.Error
 	}
 
-	result := gi.db.Save(i)
+	result := tx.Save(i)
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
@@ -180,13 +211,13 @@ func (gi *gormImage) Update(i *store.Image) error {
 
 	for _, t := range i.Tags {
 		if t.ID == 0 {
-			result := gi.db.Create(t)
+			result := tx.Create(t)
 			if result.Error != nil {
 				tx.Rollback()
 				return result.Error
 			}
 		} else {
-			result := gi.db.Save(t)
+			result := tx.Save(t)
 			if result.Error != nil {
 				tx.Rollback()
 				return result.Error
@@ -203,8 +234,73 @@ func (gi *gormImage) Update(i *store.Image) error {
 	return nil
 }
 
-func (g *gorm) Migrate() error {
-	g.db.AutoMigrate(&store.Feature{}, &store.OSFeature{}, &store.Image{}, &store.Layer{}, &store.LayerOfPlatform{}, &store.Platform{}, &store.Tag{})
+type gormTag struct {
+	db *gormlib.DB
+}
+
+func (g *gormTag) Get(o store.TagGetOptions) (*store.Tag, error) {
+	if o.ImageName == "" {
+		return nil, fmt.Errorf("required field ImageName not set")
+	}
+
+	whereQuery := []string{}
+	whereValues := []interface{}{}
+	whereQuery = append(whereQuery, "imagespy_image.name = ?")
+	whereValues = append(whereValues, o.ImageName)
+	if o.ImageID != 0 {
+		whereQuery = append(whereQuery, "imagespy_tag.image_id = ?")
+		whereValues = append(whereValues, o.ImageID)
+	}
+
+	if o.Distinction != "" {
+		whereQuery = append(whereQuery, "imagespy_tag.distinction = ?")
+		whereValues = append(whereValues, o.Distinction)
+	}
+
+	if o.IsLatest != nil {
+		whereQuery = append(whereQuery, "imagespy_tag.is_latest = ?")
+		if *o.IsLatest {
+			whereValues = append(whereValues, 1)
+		} else {
+			whereValues = append(whereValues, 0)
+		}
+	}
+
+	if o.Name != "" {
+		whereQuery = append(whereQuery, "imagespy_tag.name = ?")
+		whereValues = append(whereValues, o.Name)
+	}
+
+	tag := &store.Tag{}
+	result := g.db.Where(strings.Join(whereQuery, " AND "), whereValues...).Joins("inner join imagespy_image on imagespy_image.id = imagespy_tag.image_id").Take(tag)
+	if result.Error != nil {
+		if result.Error == gormlib.ErrRecordNotFound {
+			return nil, store.ErrDoesNotExist
+		}
+
+		return nil, result.Error
+	}
+
+	return tag, nil
+}
+
+func (g *gormTag) Update(t *store.Tag) error {
+	tx := g.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	result := tx.Save(t)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	tx.Commit()
+	if tx.Error != nil {
+		tx.Rollback()
+		return tx.Error
+	}
+
 	return nil
 }
 
