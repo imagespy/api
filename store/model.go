@@ -61,7 +61,7 @@ func (i *Image) FindLatestTagByDistiction(d string) (*Tag, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("image %s does not have tag with distinction", i.Name, d)
+	return nil, fmt.Errorf("image %s does not have tag with distinction %s", i.Name, d)
 }
 
 type Layer struct {
