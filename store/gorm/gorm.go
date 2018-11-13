@@ -16,6 +16,14 @@ func (g *gorm) Images() store.ImageStore {
 	return &gormImage{db: g.db}
 }
 
+func (g *gorm) Layers() store.LayerStore {
+	return &gormLayer{db: g.db}
+}
+
+func (g *gorm) Platforms() store.PlatformStore {
+	return &gormPlatform{db: g.db}
+}
+
 func (g *gorm) Tags() store.TagStore {
 	return &gormTag{db: g.db}
 }
@@ -87,7 +95,6 @@ func (gi *gormImage) Create(i *store.Image) error {
 				tx.Rollback()
 				return result.Error
 			}
-			fmt.Printf("l: %d - p: %d\n", l.ID, p.ID)
 
 			layerOfPlatform := &store.LayerOfPlatform{
 				LayerID:    l.ID,
@@ -265,6 +272,126 @@ func (gi *gormImage) Update(i *store.Image) error {
 	}
 
 	return nil
+}
+
+type gormLayer struct {
+	db *gormlib.DB
+}
+
+func (g *gormLayer) Create(l *store.Layer) error {
+	tx := g.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	result := tx.Create(l)
+	if result.Error != nil {
+		tx.Rollback()
+		return result.Error
+	}
+
+	for _, sid := range l.SourceImageIDs {
+		result := tx.Exec("insert into imagespy_layer_source_images (image_id, layer_id) values (?, ?)", sid, l.ID)
+		if result.Error != nil {
+			tx.Rollback()
+			return result.Error
+		}
+	}
+
+	tx.Commit()
+	if tx.Error != nil {
+		tx.Rollback()
+		return tx.Error
+	}
+
+	return nil
+}
+
+func (g *gormLayer) List(o store.LayerListOptions) ([]*store.Layer, error) {
+	query := g.db
+	if o.PlatformID != 0 {
+		query = query.Joins("inner join imagespy_layerofplatform on imagespy_layerofplatform.layer_id = imagespy_layer.id").
+			Where("imagespy_layerofplatform.platform_id = ?", o.PlatformID)
+	}
+
+	layers := []*store.Layer{}
+	result := query.Find(&layers)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	type sourceImageIDsResult struct {
+		ImageID int
+	}
+
+	for _, l := range layers {
+		rows, err := g.db.Raw("select image_id from imagespy_layer_source_images where layer_id = ?", l.ID).Rows()
+		if err != nil {
+			rows.Close()
+			return nil, err
+		}
+
+		for rows.Next() {
+			var result sourceImageIDsResult
+			err := g.db.ScanRows(rows, &result)
+			if err != nil {
+				rows.Close()
+				return nil, nil
+			}
+
+			l.SourceImageIDs = append(l.SourceImageIDs, result.ImageID)
+		}
+
+		rows.Close()
+	}
+
+	return layers, nil
+}
+
+func (g *gormLayer) Update(l *store.Layer) error {
+	tx := g.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	result := tx.Exec("delete from imagespy_layer_source_images where layer_id = ?", l.ID)
+	if result.Error != nil {
+		tx.Rollback()
+		return result.Error
+	}
+
+	for _, imageID := range l.SourceImageIDs {
+		result := tx.Exec("insert into imagespy_layer_source_images (image_id, layer_id) VALUES (?, ?)", imageID, l.ID)
+		if result.Error != nil {
+			tx.Rollback()
+			return result.Error
+		}
+	}
+
+	result = tx.Commit()
+	if result.Error != nil {
+		tx.Rollback()
+		return result.Error
+	}
+
+	return nil
+}
+
+type gormPlatform struct {
+	db *gormlib.DB
+}
+
+func (g *gormPlatform) List(o store.PlatformListOptions) ([]*store.Platform, error) {
+	platforms := []*store.Platform{}
+	result := g.db.Joins("inner join imagespy_layerofplatform on imagespy_layerofplatform.platform_id = imagespy_platform.id").
+		Joins("inner join imagespy_layer on imagespy_layer.id = imagespy_layerofplatform.layer_id").
+		Where("imagespy_layer.digest = ?", o.LayerDigest).
+		Find(&platforms)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return platforms, nil
 }
 
 type gormTag struct {

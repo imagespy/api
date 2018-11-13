@@ -177,6 +177,15 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 			if err != nil {
 				return err
 			}
+
+			for _, p := range latestImage.Platforms {
+				for _, l := range p.Layers {
+					err := a.updateSourceImagesOfLayer(l)
+					if err != nil {
+						return err
+					}
+				}
+			}
 		} else {
 			return err
 		}
@@ -344,4 +353,68 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 	}
 
 	return image, nil
+}
+
+func (a *async) updateSourceImagesOfLayer(l *store.Layer) error {
+	layerClient := a.store.Layers()
+	platforms, err := a.store.Platforms().List(store.PlatformListOptions{LayerDigest: l.Digest})
+	if err != nil {
+		return err
+	}
+
+	length := 1000
+	var sourcePlatforms []*store.Platform
+	for _, p := range platforms {
+		layers, err := layerClient.List(store.LayerListOptions{PlatformID: p.ID})
+		if err != nil {
+			return err
+		}
+
+		if len(layers) < length {
+			length = len(layers)
+			sourcePlatforms = []*store.Platform{p}
+		} else if len(layers) == length {
+			sourcePlatforms = append(sourcePlatforms, p)
+		}
+	}
+
+	sourceImageIDs, needsUpdate := newSourceImageIDs(l, sourcePlatforms)
+	if needsUpdate {
+		l.SourceImageIDs = sourceImageIDs
+		err = layerClient.Update(l)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func newSourceImageIDs(l *store.Layer, platforms []*store.Platform) ([]int, bool) {
+	sourceImageIDsCurrent := map[int]struct{}{}
+	for _, siid := range l.SourceImageIDs {
+		sourceImageIDsCurrent[siid] = struct{}{}
+	}
+
+	needsUpdate := false
+	sourceImageIDsNew := map[int]struct{}{}
+	for _, p := range platforms {
+		_, ok := sourceImageIDsCurrent[p.ImageID]
+		if !ok {
+			needsUpdate = true
+		}
+
+		sourceImageIDsNew[p.ImageID] = struct{}{}
+	}
+
+	if !needsUpdate {
+		return l.SourceImageIDs, false
+	}
+
+	sourceImageIDs := []int{}
+	for imageID := range sourceImageIDsNew {
+		sourceImageIDs = append(sourceImageIDs, imageID)
+	}
+
+	return sourceImageIDs, true
 }

@@ -66,8 +66,8 @@ func (i *Image) FindLatestTagByDistiction(d string) (*Tag, error) {
 
 type Layer struct {
 	Model
-	Digest       string
-	SourceImages []*Image `gorm:"many2many:imagespy_layer_source_images;"`
+	Digest         string
+	SourceImageIDs []int `gorm:"-"`
 }
 
 func (Layer) TableName() string {

@@ -36,8 +36,10 @@ type testcase struct {
 	name                       string
 	imageToScrape              registry.Image
 	imagesInDatabase           []*store.Image
+	layersInDatabase           []*store.Layer
 	additionalImagesInRegistry []registry.Image
 	expectedImages             []*store.Image
+	expectedLayers             []*store.Layer
 }
 
 func executeTest(t *testing.T, tc testcase, funcToTest string) {
@@ -85,6 +87,13 @@ func executeTest(t *testing.T, tc testcase, funcToTest string) {
 			}
 		}
 
+		for _, lid := range tc.layersInDatabase {
+			err := s.Layers().Create(lid)
+			if err != nil {
+				t.Fatalf("creating image in database failed: %s", err)
+			}
+		}
+
 		mockRegistry := registryMock.NewRegistry()
 		mockRegistry.AddImage(tc.imageToScrape.(*registryMock.Image))
 		for _, i := range tc.additionalImagesInRegistry {
@@ -103,12 +112,23 @@ func executeTest(t *testing.T, tc testcase, funcToTest string) {
 			require.NoError(t, err)
 		}
 
-		storedImages, err := s.Images().List(store.ImageListOptions{})
-		require.NoError(t, err)
+		if len(tc.expectedImages) > 0 {
+			storedImages, err := s.Images().List(store.ImageListOptions{})
+			require.NoError(t, err)
 
-		sort.Slice(tc.expectedImages, func(i, j int) bool { return tc.expectedImages[i].ID < tc.expectedImages[j].ID })
-		sort.Slice(storedImages, func(i, j int) bool { return storedImages[i].ID < storedImages[j].ID })
-		assert.EqualValues(t, tc.expectedImages, storedImages)
+			sort.Slice(tc.expectedImages, func(i, j int) bool { return tc.expectedImages[i].ID < tc.expectedImages[j].ID })
+			sort.Slice(storedImages, func(i, j int) bool { return storedImages[i].ID < storedImages[j].ID })
+			assert.EqualValues(t, tc.expectedImages, storedImages)
+		}
+
+		if len(tc.expectedLayers) > 0 {
+			storedLayers, err := s.Layers().List(store.LayerListOptions{})
+			require.NoError(t, err)
+
+			sort.Slice(tc.expectedLayers, func(i, j int) bool { return tc.expectedLayers[i].ID < tc.expectedLayers[j].ID })
+			sort.Slice(storedLayers, func(i, j int) bool { return storedLayers[i].ID < storedLayers[j].ID })
+			assert.EqualValues(t, tc.expectedLayers, storedLayers)
+		}
 	})
 }
 
@@ -302,6 +322,85 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 					Tags: []*store.Tag{
 						&store.Tag{Distinction: "major", ImageID: 2, IsLatest: true, IsTagged: true, Model: store.Model{ID: 2}, Name: "2"},
 					},
+				},
+			},
+		},
+		{
+			name: "When a new image is scraped it sets the IDs of the source images of each layer",
+			imageToScrape: registryMock.NewImage(
+				"GHI",
+				"dev.local/unittest",
+				[]registry.Platform{
+					registryMock.NewPlatform("amd64", "opq", []string{"l1", "l2"}, "bbb", "linux"),
+				},
+				2,
+				"2",
+			),
+			expectedLayers: []*store.Layer{
+				{
+					Digest:         "l1",
+					Model:          store.Model{ID: 1},
+					SourceImageIDs: []int{1},
+				},
+				{
+					Digest:         "l2",
+					Model:          store.Model{ID: 2},
+					SourceImageIDs: []int{1},
+				},
+			},
+		},
+		{
+			name: "When a new image is scraped that is the source of already existing layers it sets the IDs of the source images of each layer",
+			imagesInDatabase: []*store.Image{
+				{
+					CreatedAt: time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					Digest:    "ABC",
+					Name:      "dev.local/derived-image",
+					Platforms: []*store.Platform{
+						{
+							Created:      time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+							CreatedAt:    time.Date(2018, 10, 26, 3, 0, 0, 0, time.UTC),
+							Architecture: "amd64",
+							Layers: []*store.Layer{
+								{Digest: "l1", Model: store.Model{ID: 1}},
+								{Digest: "l2", Model: store.Model{ID: 2}},
+								{Digest: "l3", Model: store.Model{ID: 3}},
+							},
+							Model: store.Model{ID: 1},
+							OS:    "linux",
+						},
+					},
+					ScrapedAt:     time.Date(2018, 10, 26, 4, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+					Tags: []*store.Tag{
+						&store.Tag{Distinction: "major", IsLatest: true, IsTagged: true, Name: "1"},
+					},
+				},
+			},
+			imageToScrape: registryMock.NewImage(
+				"GHI",
+				"dev.local/source-image",
+				[]registry.Platform{
+					registryMock.NewPlatform("amd64", "opq", []string{"l1", "l2"}, "bbb", "linux"),
+				},
+				2,
+				"2",
+			),
+			expectedLayers: []*store.Layer{
+				{
+					Digest:         "l1",
+					Model:          store.Model{ID: 1},
+					SourceImageIDs: []int{2},
+				},
+				{
+					Digest:         "l2",
+					Model:          store.Model{ID: 2},
+					SourceImageIDs: []int{2},
+				},
+				{
+					Digest:         "l3",
+					Model:          store.Model{ID: 3},
+					SourceImageIDs: []int{1},
 				},
 			},
 		},

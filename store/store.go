@@ -9,12 +9,9 @@ var (
 )
 
 type Store interface {
-	// CreateImageFromRegistryImage(distinction string, regImg registry.Image) (*Image, *Tag, error)
-	// FindLatestTagWithImage(repository, tag string) (*Tag, error)
-	// FindLatestImageWithTagsByDistinction(distinction string, repository string) (*Image, error)
-	// FindImageWithTagsByTag(repository string, tag string) (*Image, error)
-	// UpdateTag(*Tag) error
 	Images() ImageStore
+	Layers() LayerStore
+	Platforms() PlatformStore
 	Tags() TagStore
 }
 
@@ -40,6 +37,24 @@ type ImageListOptions struct {
 	TagDistinction string
 	TagIsLatest    *bool
 	TagName        string
+}
+
+type LayerStore interface {
+	Create(l *Layer) error
+	List(o LayerListOptions) ([]*Layer, error)
+	Update(l *Layer) error
+}
+
+type LayerListOptions struct {
+	PlatformID int
+}
+
+type PlatformStore interface {
+	List(o PlatformListOptions) ([]*Platform, error)
+}
+
+type PlatformListOptions struct {
+	LayerDigest string
 }
 
 type TagStore interface {

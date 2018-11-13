@@ -139,7 +139,7 @@ func (m *mockPlatform) Features() []string {
 }
 
 func (m *mockPlatform) Manifest() (registry.Manifest, error) {
-	return nil, nil
+	return m.manifest, nil
 }
 
 func (m *mockPlatform) OS() string {
@@ -159,15 +159,18 @@ func (m *mockPlatform) Variant() string {
 }
 
 func NewPlatform(arch string, digest string, layers []string, manifestDigest string, os string) *mockPlatform {
+	manifest := &mockManifest{
+		config: &mockConfig{digest: manifestDigest},
+	}
+	for _, layer := range layers {
+		manifest.layers = append(manifest.layers, &mockLayer{digest: layer})
+	}
+
 	return &mockPlatform{
-		arch:   arch,
-		digest: digest,
-		manifest: &mockManifest{
-			config: &mockConfig{
-				digest: manifestDigest,
-			},
-		},
-		os: os,
+		arch:     arch,
+		digest:   digest,
+		manifest: manifest,
+		os:       os,
 	}
 }
 
@@ -178,10 +181,11 @@ type mockManifest struct {
 }
 
 func (m *mockManifest) Config() (registry.Config, error) {
-	return nil, nil
+	return m.config, nil
 }
+
 func (m *mockManifest) Layers() []registry.Layer {
-	return nil
+	return m.layers
 }
 
 type mockConfig struct {
