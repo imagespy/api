@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -24,67 +23,54 @@ type Image struct {
 	CreatedAt     time.Time
 	Digest        string
 	Name          string
-	Platforms     []*Platform
 	SchemaVersion int
 	ScrapedAt     time.Time
-	Tags          []*Tag
 }
 
 func (Image) TableName() string {
 	return "imagespy_image"
 }
 
-func (i *Image) HasTag(t *Tag) bool {
-	for _, tag := range i.Tags {
-		if tag.Name == t.Name {
-			return true
-		}
-	}
+// func (i *Image) HasTag(t *Tag) bool {
+// 	for _, tag := range i.Tags {
+// 		if tag.Name == t.Name {
+// 			return true
+// 		}
+// 	}
 
-	return false
-}
+// 	return false
+// }
 
-func (i *Image) FindTag(name string) (*Tag, error) {
-	for _, t := range i.Tags {
-		if t.Name == name {
-			return t, nil
-		}
-	}
+// func (i *Image) FindTag(name string) (*Tag, error) {
+// 	for _, t := range i.Tags {
+// 		if t.Name == name {
+// 			return t, nil
+// 		}
+// 	}
 
-	return nil, fmt.Errorf("image %s does not have tag %s", i.Name, name)
-}
+// 	return nil, fmt.Errorf("image %s does not have tag %s", i.Name, name)
+// }
 
-func (i *Image) FindLatestTagByDistiction(d string) (*Tag, error) {
-	for _, t := range i.Tags {
-		if t.IsLatest && t.Distinction == d {
-			return t, nil
-		}
-	}
+// func (i *Image) FindLatestTagByDistiction(d string) (*Tag, error) {
+// 	for _, t := range i.Tags {
+// 		if t.IsLatest && t.Distinction == d {
+// 			return t, nil
+// 		}
+// 	}
 
-	return nil, fmt.Errorf("image %s does not have tag with distinction %s", i.Name, d)
-}
+// 	return nil, fmt.Errorf("image %s does not have tag with distinction %s", i.Name, d)
+// }
 
 type Layer struct {
 	Model
 	Digest         string
+	PlatformID     int   `gorm:"-"`
+	Position       int   `gorm:"-"`
 	SourceImageIDs []int `gorm:"-"`
 }
 
 func (Layer) TableName() string {
 	return "imagespy_layer"
-}
-
-type LayerOfPlatform struct {
-	Model
-	Layer      *Layer
-	LayerID    int
-	Platform   *Platform
-	PlatformID int
-	Position   int
-}
-
-func (LayerOfPlatform) TableName() string {
-	return "imagespy_layerofplatform"
 }
 
 type OSFeature struct {
@@ -104,7 +90,6 @@ type Platform struct {
 	CreatedAt      time.Time
 	Features       []*Feature `gorm:"many2many:imagespy_platform_features;"`
 	ImageID        int
-	Layers         []*Layer
 	ManifestDigest string
 	OS             string
 	OSFeatures     []*OSFeature `gorm:"many2many:imagespy_platform_os_features;"`

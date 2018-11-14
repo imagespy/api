@@ -37,9 +37,13 @@ type testcase struct {
 	imageToScrape              registry.Image
 	imagesInDatabase           []*store.Image
 	layersInDatabase           []*store.Layer
+	platformsInDatabase        []*store.Platform
+	tagsInDatabase             []*store.Tag
 	additionalImagesInRegistry []registry.Image
 	expectedImages             []*store.Image
 	expectedLayers             []*store.Layer
+	expectedPlatforms          []*store.Platform
+	expectedTags               []*store.Tag
 }
 
 func executeTest(t *testing.T, tc testcase, funcToTest string) {
@@ -87,10 +91,24 @@ func executeTest(t *testing.T, tc testcase, funcToTest string) {
 			}
 		}
 
+		for _, pid := range tc.platformsInDatabase {
+			err := s.Platforms().Create(pid)
+			if err != nil {
+				t.Fatalf("creating platform in database failed: %s", err)
+			}
+		}
+
 		for _, lid := range tc.layersInDatabase {
 			err := s.Layers().Create(lid)
 			if err != nil {
-				t.Fatalf("creating image in database failed: %s", err)
+				t.Fatalf("creating layer in database failed: %s", err)
+			}
+		}
+
+		for _, tid := range tc.tagsInDatabase {
+			err := s.Tags().Create(tid)
+			if err != nil {
+				t.Fatalf("creating tag in database failed: %s", err)
 			}
 		}
 
@@ -121,6 +139,15 @@ func executeTest(t *testing.T, tc testcase, funcToTest string) {
 			assert.EqualValues(t, tc.expectedImages, storedImages)
 		}
 
+		if len(tc.expectedPlatforms) > 0 {
+			storedPlatforms, err := s.Platforms().List(store.PlatformListOptions{})
+			require.NoError(t, err)
+
+			sort.Slice(tc.expectedPlatforms, func(i, j int) bool { return tc.expectedPlatforms[i].ID < tc.expectedPlatforms[j].ID })
+			sort.Slice(storedPlatforms, func(i, j int) bool { return storedPlatforms[i].ID < storedPlatforms[j].ID })
+			assert.EqualValues(t, tc.expectedPlatforms, storedPlatforms)
+		}
+
 		if len(tc.expectedLayers) > 0 {
 			storedLayers, err := s.Layers().List(store.LayerListOptions{})
 			require.NoError(t, err)
@@ -129,14 +156,31 @@ func executeTest(t *testing.T, tc testcase, funcToTest string) {
 			sort.Slice(storedLayers, func(i, j int) bool { return storedLayers[i].ID < storedLayers[j].ID })
 			assert.EqualValues(t, tc.expectedLayers, storedLayers)
 		}
+
+		if len(tc.expectedTags) > 0 {
+			storedTags, err := s.Tags().List(store.TagListOptions{})
+			require.NoError(t, err)
+
+			sort.Slice(tc.expectedTags, func(i, j int) bool { return tc.expectedTags[i].ID < tc.expectedTags[j].ID })
+			sort.Slice(storedTags, func(i, j int) bool { return storedTags[i].ID < storedTags[j].ID })
+			assert.EqualValues(t, tc.expectedTags, storedTags)
+		}
 	})
 }
 
 func TestAsync_ScrapeImage(t *testing.T) {
 	testcases := []testcase{
 		{
-			name:          "When the image has not been scraped it scrapes the image",
-			imageToScrape: registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
+			name: "When the image has not been scraped it scrapes the image",
+			imageToScrape: registryMock.NewImage(
+				"ABC",
+				"dev.local/unittest",
+				[]registry.Platform{
+					registryMock.NewPlatform("amd64", "xyz", []string{"l123", "l456"}, "qwz", "linux"),
+				},
+				2,
+				"1",
+			),
 			expectedImages: []*store.Image{
 				&store.Image{
 					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
@@ -145,10 +189,29 @@ func TestAsync_ScrapeImage(t *testing.T) {
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
-					},
 				},
+			},
+			expectedLayers: []*store.Layer{
+				{Digest: "l123", Model: store.Model{ID: 1}, PlatformID: 1, Position: 0, SourceImageIDs: []int{1}},
+				{Digest: "l456", Model: store.Model{ID: 2}, PlatformID: 1, Position: 1, SourceImageIDs: []int{1}},
+			},
+			expectedPlatforms: []*store.Platform{
+				{
+					Architecture:   "amd64",
+					Created:        time.Date(2018, 10, 26, 4, 0, 0, 0, time.UTC),
+					CreatedAt:      time.Date(2018, 10, 26, 3, 0, 0, 0, time.UTC),
+					Features:       []*store.Feature{},
+					ImageID:        1,
+					ManifestDigest: "qwz",
+					Model:          store.Model{ID: 1},
+					OS:             "linux",
+					OSFeatures:     []*store.OSFeature{},
+					OSVersion:      "",
+					Variant:        "",
+				},
+			},
+			expectedTags: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
 			},
 		},
 		{
@@ -164,10 +227,10 @@ func TestAsync_ScrapeImage(t *testing.T) {
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", IsLatest: false, IsTagged: true, Name: "1"},
-					},
 				},
+			},
+			tagsInDatabase: []*store.Tag{
+				&store.Tag{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Name: "1"},
 			},
 			expectedImages: []*store.Image{
 				{
@@ -177,11 +240,11 @@ func TestAsync_ScrapeImage(t *testing.T) {
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
-						&store.Tag{Distinction: "majorMinor", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 2}, Name: "1.1"},
-					},
 				},
+			},
+			expectedTags: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
+				{Distinction: "majorMinor", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 2}, Name: "1.1"},
 			},
 		},
 	}
@@ -204,10 +267,10 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
-					},
 				},
+			},
+			expectedTags: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
 			},
 		},
 		{
@@ -220,10 +283,10 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", IsLatest: false, IsTagged: true, Name: "1"},
-					},
 				},
+			},
+			tagsInDatabase: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Name: "1"},
 			},
 			expectedImages: []*store.Image{
 				&store.Image{
@@ -233,10 +296,10 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
-					},
 				},
+			},
+			expectedTags: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
 			},
 		},
 		{
@@ -252,10 +315,10 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", IsLatest: true, IsTagged: true, Name: "1"},
-					},
 				},
+			},
+			tagsInDatabase: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Name: "1"},
 			},
 			expectedImages: []*store.Image{
 				&store.Image{
@@ -265,9 +328,6 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
-					},
 				},
 				&store.Image{
 					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
@@ -276,10 +336,11 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", ImageID: 2, IsLatest: true, IsTagged: true, Model: store.Model{ID: 2}, Name: "2"},
-					},
 				},
+			},
+			expectedTags: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
+				{Distinction: "major", ImageID: 2, IsLatest: true, IsTagged: true, Model: store.Model{ID: 2}, Name: "2"},
 			},
 		},
 		{
@@ -295,10 +356,10 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", IsLatest: true, IsTagged: true, Name: "2"},
-					},
 				},
+			},
+			tagsInDatabase: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Name: "2"},
 			},
 			expectedImages: []*store.Image{
 				&store.Image{
@@ -308,9 +369,6 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 1}, Name: "2"},
-					},
 				},
 				&store.Image{
 					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
@@ -319,10 +377,11 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 					Name:          "dev.local/unittest",
 					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", ImageID: 2, IsLatest: true, IsTagged: true, Model: store.Model{ID: 2}, Name: "2"},
-					},
 				},
+			},
+			expectedTags: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 1}, Name: "2"},
+				{Distinction: "major", ImageID: 2, IsLatest: true, IsTagged: true, Model: store.Model{ID: 2}, Name: "2"},
 			},
 		},
 		{
@@ -337,44 +396,34 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 				"2",
 			),
 			expectedLayers: []*store.Layer{
-				{
-					Digest:         "l1",
-					Model:          store.Model{ID: 1},
-					SourceImageIDs: []int{1},
-				},
-				{
-					Digest:         "l2",
-					Model:          store.Model{ID: 2},
-					SourceImageIDs: []int{1},
-				},
+				{Digest: "l1", Model: store.Model{ID: 1}, PlatformID: 1, Position: 0, SourceImageIDs: []int{1}},
+				{Digest: "l2", Model: store.Model{ID: 2}, PlatformID: 1, Position: 1, SourceImageIDs: []int{1}},
 			},
 		},
 		{
 			name: "When a new image is scraped that is the source of already existing layers it sets the IDs of the source images of each layer",
 			imagesInDatabase: []*store.Image{
 				{
-					CreatedAt: time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
-					Digest:    "ABC",
-					Name:      "dev.local/derived-image",
-					Platforms: []*store.Platform{
-						{
-							Created:      time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
-							CreatedAt:    time.Date(2018, 10, 26, 3, 0, 0, 0, time.UTC),
-							Architecture: "amd64",
-							Layers: []*store.Layer{
-								{Digest: "l1", Model: store.Model{ID: 1}},
-								{Digest: "l2", Model: store.Model{ID: 2}},
-								{Digest: "l3", Model: store.Model{ID: 3}},
-							},
-							Model: store.Model{ID: 1},
-							OS:    "linux",
-						},
-					},
+					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					Digest:        "ABC",
+					Name:          "dev.local/derived-image",
 					ScrapedAt:     time.Date(2018, 10, 26, 4, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
-					Tags: []*store.Tag{
-						&store.Tag{Distinction: "major", IsLatest: true, IsTagged: true, Name: "1"},
-					},
+				},
+			},
+			layersInDatabase: []*store.Layer{
+				{Digest: "l1", PlatformID: 1, Position: 0, SourceImageIDs: []int{1}},
+				{Digest: "l2", PlatformID: 1, Position: 1, SourceImageIDs: []int{1}},
+				{Digest: "l3", PlatformID: 1, Position: 2, SourceImageIDs: []int{1}},
+			},
+			platformsInDatabase: []*store.Platform{
+				{
+					Created:      time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					CreatedAt:    time.Date(2018, 10, 26, 3, 0, 0, 0, time.UTC),
+					Architecture: "amd64",
+					ImageID:      1,
+					Model:        store.Model{ID: 1},
+					OS:           "linux",
 				},
 			},
 			imageToScrape: registryMock.NewImage(
@@ -387,21 +436,9 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 				"2",
 			),
 			expectedLayers: []*store.Layer{
-				{
-					Digest:         "l1",
-					Model:          store.Model{ID: 1},
-					SourceImageIDs: []int{2},
-				},
-				{
-					Digest:         "l2",
-					Model:          store.Model{ID: 2},
-					SourceImageIDs: []int{2},
-				},
-				{
-					Digest:         "l3",
-					Model:          store.Model{ID: 3},
-					SourceImageIDs: []int{1},
-				},
+				{Digest: "l1", Model: store.Model{ID: 1}, PlatformID: 1, Position: 0, SourceImageIDs: []int{2}},
+				{Digest: "l2", Model: store.Model{ID: 2}, PlatformID: 1, Position: 1, SourceImageIDs: []int{2}},
+				{Digest: "l3", Model: store.Model{ID: 3}, PlatformID: 1, Position: 2, SourceImageIDs: []int{1}},
 			},
 		},
 	}

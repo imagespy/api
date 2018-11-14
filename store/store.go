@@ -32,17 +32,20 @@ type ImageGetOptions struct {
 }
 
 type ImageListOptions struct {
-	Digest         string
-	Name           string
-	TagDistinction string
-	TagIsLatest    *bool
-	TagName        string
+	Digest string
+	Name   string
 }
 
 type LayerStore interface {
 	Create(l *Layer) error
+	Get(o LayerGetOptions) (*Layer, error)
 	List(o LayerListOptions) ([]*Layer, error)
 	Update(l *Layer) error
+}
+
+type LayerGetOptions struct {
+	Digest     string
+	PlatformID int
 }
 
 type LayerListOptions struct {
@@ -50,6 +53,7 @@ type LayerListOptions struct {
 }
 
 type PlatformStore interface {
+	Create(*Platform) error
 	List(o PlatformListOptions) ([]*Platform, error)
 }
 
@@ -58,6 +62,7 @@ type PlatformListOptions struct {
 }
 
 type TagStore interface {
+	Create(*Tag) error
 	Get(o TagGetOptions) (*Tag, error)
 	List(o TagListOptions) ([]*Tag, error)
 	Update(*Tag) error

@@ -63,21 +63,32 @@ func (a *async) ScrapeImage(i registry.Image) error {
 	}
 
 	vp := versionparser.FindForVersion(tagRef)
-	image, err := a.store.Images().Get(store.ImageGetOptions{
-		Digest: digest,
-	})
+	image, err := a.store.Images().Get(store.ImageGetOptions{Digest: digest})
 	if err == nil {
 		newTag := &store.Tag{
 			Distinction: vp.Distinction(),
+			ImageID:     image.ID,
 			IsLatest:    false,
 			IsTagged:    true,
 			Name:        tagRef,
 		}
-		if image.HasTag(newTag) == false {
-			image.Tags = append(image.Tags, newTag)
-			err := a.store.Images().Update(image)
+
+		tags, err := a.store.Tags().List(store.TagListOptions{ImageID: image.ID})
+		if err != nil {
+			return err
+		}
+
+		tagExists := false
+		for _, tagItem := range tags {
+			if tagItem.Name == newTag.Name {
+				tagExists = true
+			}
+		}
+
+		if !tagExists {
+			err := a.store.Tags().Create(newTag)
 			if err != nil {
-				return fmt.Errorf("ScrapeImage: updating image failed: %s", err)
+				return err
 			}
 		}
 
@@ -85,14 +96,16 @@ func (a *async) ScrapeImage(i registry.Image) error {
 	}
 
 	if err != nil && err == store.ErrDoesNotExist {
-		image, err := a.CreateStoreImageFromRegistryImage(vp.Distinction(), i)
+		_, layers, err := a.CreateStoreImageFromRegistryImage(vp.Distinction(), i)
 		if err != nil {
 			return err
 		}
 
-		err = a.store.Images().Create(image)
-		if err != nil {
-			return err
+		for _, l := range layers {
+			err := a.updateSourceImagesOfLayer(l)
+			if err != nil {
+				log.Errorf("failed to update source image of layer %d: %s", l.ID, err)
+			}
 		}
 
 		return nil
@@ -121,9 +134,7 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 	}
 	var currentImage *store.Image
 	if currentTag != nil {
-		currentImage, err = a.store.Images().Get(store.ImageGetOptions{
-			ID: currentTag.ImageID,
-		})
+		currentImage, err = a.store.Images().Get(store.ImageGetOptions{ID: currentTag.ImageID})
 		if err != nil {
 			return err
 		}
@@ -163,27 +174,19 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 	}
 
 	var latestImage *store.Image
-	latestImage, err = a.store.Images().Get(store.ImageGetOptions{
-		Digest: latestRegImageDigest,
-	})
+	latestImage, err = a.store.Images().Get(store.ImageGetOptions{Digest: latestRegImageDigest})
 	if err != nil {
 		if err == store.ErrDoesNotExist {
-			latestImage, err = a.CreateStoreImageFromRegistryImage(latestVP.Distinction(), latestRegImage)
+			var latestImageLayers []*store.Layer
+			latestImage, latestImageLayers, err = a.CreateStoreImageFromRegistryImage(latestVP.Distinction(), latestRegImage)
 			if err != nil {
 				return err
 			}
 
-			err = a.store.Images().Create(latestImage)
-			if err != nil {
-				return err
-			}
-
-			for _, p := range latestImage.Platforms {
-				for _, l := range p.Layers {
-					err := a.updateSourceImagesOfLayer(l)
-					if err != nil {
-						return err
-					}
+			for _, l := range latestImageLayers {
+				err := a.updateSourceImagesOfLayer(l)
+				if err != nil {
+					return err
 				}
 			}
 		} else {
@@ -224,57 +227,15 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 	return nil
 }
 
-// func (s *async) scrapeLatestImages() error {
-// 	tags, err := s.store.FindAllLatestTagsWithImage()
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	imagesByName := map[string][]*store.Tag{}
-// 	for _, tag := range tags {
-// 		_, ok := imagesByName[tag.Image.Name]
-// 		if ok {
-// 			imagesByName[tag.Image.Name] = append(imagesByName[tag.Image.Name], tag)
-// 		} else {
-// 			imagesByName[tag.Image.Name] = []*store.Tag{tag}
-// 		}
-// 	}
-//
-// 	for imageName, tagsToScrape := range imagesByName {
-// 		regRepo, err := registry.NewRepository(imageName, false)
-// 		if err != nil {
-// 			return err
-// 		}
-//
-// 		for _, t := range tagsToScrape {
-// 			regImage := regRepo.Image("", t.Name)
-// 			latestImage, err := ScrapeLatestImageOfRegistryImage(regImage, s.store)
-// 			if err != nil {
-// 				return err
-// 			}
-//
-// 			if latestImage.Digest != t.Image.Digest {
-// 				t.IsLatest = false
-// 				err = s.store.UpdateTag(t)
-// 				if err != nil {
-// 					return err
-// 				}
-// 			}
-// 		}
-// 	}
-//
-// 	return nil
-// }
-
-func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image) (*store.Image, error) {
+func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image) (*store.Image, []*store.Layer, error) {
 	imageDigest, err := regImg.Digest()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	imageSV, err := regImg.SchemaVersion()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	image := &store.Image{
@@ -284,35 +245,45 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 		SchemaVersion: imageSV,
 		ScrapedAt:     a.timeFunc(),
 	}
+	err = a.store.Images().Create(image)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	tagName, err := regImg.Tag()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	tag := &store.Tag{
 		Distinction: distinction,
+		ImageID:     image.ID,
 		IsLatest:    false,
 		IsTagged:    true,
 		Name:        tagName,
 	}
-	if image.HasTag(tag) == false {
-		image.Tags = append(image.Tags, tag)
+	err = a.store.Tags().Create(tag)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	regPlatforms, err := regImg.Platforms()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
+	layers := []*store.Layer{}
+	layerClient := a.store.Layers()
+	platformClient := a.store.Platforms()
 	for _, p := range regPlatforms {
 		regManifest, err := p.Manifest()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		regManifestConfig, err := regManifest.Config()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		platform := &store.Platform{
@@ -340,19 +311,30 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 			})
 		}
 
-		for _, l := range regManifest.Layers() {
-			layerDigest, err := l.Digest()
-			if err != nil {
-				return nil, err
-			}
-
-			platform.Layers = append(platform.Layers, &store.Layer{Digest: layerDigest})
+		err = platformClient.Create(platform)
+		if err != nil {
+			log.Errorf("unable to create platform %s for image %d: %s", platform.ManifestDigest, image.ID, err)
+			continue
 		}
 
-		image.Platforms = append(image.Platforms, platform)
+		for idx, l := range regManifest.Layers() {
+			layerDigest, err := l.Digest()
+			if err != nil {
+				return nil, nil, err
+			}
+
+			layer := &store.Layer{Digest: layerDigest, PlatformID: platform.ID, Position: idx}
+			err = layerClient.Create(layer)
+			if err != nil {
+				log.Errorf("unable to create layer %s for platform %s: %s", layer.Digest, platform.ManifestDigest, err)
+				break
+			}
+
+			layers = append(layers, layer)
+		}
 	}
 
-	return image, nil
+	return image, layers, nil
 }
 
 func (a *async) updateSourceImagesOfLayer(l *store.Layer) error {

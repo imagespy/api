@@ -8,6 +8,27 @@ import (
 	gormlib "github.com/jinzhu/gorm"
 )
 
+type layerOfPlatform struct {
+	store.Model
+	LayerID    int
+	PlatformID int
+	Position   int
+}
+
+func (layerOfPlatform) TableName() string {
+	return "imagespy_layerofplatform"
+}
+
+type sourceImageOfLayer struct {
+	store.Model
+	ImageID int
+	LayerID int
+}
+
+func (sourceImageOfLayer) TableName() string {
+	return "imagespy_layer_source_images"
+}
+
 type gorm struct {
 	db *gormlib.DB
 }
@@ -50,63 +71,6 @@ func (gi *gormImage) Create(i *store.Image) error {
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
-	}
-
-	for _, t := range i.Tags {
-		result = tx.FirstOrCreate(t, store.Tag{Distinction: t.Distinction, ImageID: i.ID, Name: t.Name})
-		if result.Error != nil {
-			tx.Rollback()
-			return result.Error
-		}
-	}
-
-	for _, p := range i.Platforms {
-		result = tx.FirstOrCreate(p, store.Platform{Architecture: p.Architecture, ImageID: i.ID, ManifestDigest: p.ManifestDigest, OS: p.OS, OSVersion: p.OSVersion, Variant: p.Variant})
-		if result.Error != nil {
-			tx.Rollback()
-			return result.Error
-		}
-
-		for _, pf := range p.Features {
-			result = tx.FirstOrCreate(pf, store.Feature{Name: pf.Name})
-			if result.Error != nil {
-				tx.Rollback()
-				return result.Error
-			}
-		}
-
-		for _, posf := range p.OSFeatures {
-			result = tx.FirstOrCreate(posf, store.OSFeature{Name: posf.Name})
-			if result.Error != nil {
-				tx.Rollback()
-				return result.Error
-			}
-		}
-
-		result = tx.Save(p)
-		if result.Error != nil {
-			tx.Rollback()
-			return result.Error
-		}
-
-		for position, l := range p.Layers {
-			result = tx.FirstOrCreate(l, store.Layer{Digest: l.Digest})
-			if result.Error != nil {
-				tx.Rollback()
-				return result.Error
-			}
-
-			layerOfPlatform := &store.LayerOfPlatform{
-				LayerID:    l.ID,
-				PlatformID: p.ID,
-				Position:   position,
-			}
-			result = tx.FirstOrCreate(layerOfPlatform, store.LayerOfPlatform{LayerID: l.ID, PlatformID: p.ID, Position: position})
-			if result.Error != nil {
-				tx.Rollback()
-				return result.Error
-			}
-		}
 	}
 
 	tx.Commit()
@@ -200,40 +164,6 @@ func (gi *gormImage) List(o store.ImageListOptions) ([]*store.Image, error) {
 		return nil, result.Error
 	}
 
-	tagWhereQuery := []string{}
-	tagWhereValues := []interface{}{}
-	if o.TagDistinction != "" {
-		tagWhereQuery = append(tagWhereQuery, "imagespy_tag.distinction = ?")
-		tagWhereValues = append(tagWhereValues, o.TagDistinction)
-	}
-
-	if o.TagIsLatest != nil {
-		tagWhereQuery = append(tagWhereQuery, "imagespy_tag.is_latest = ?")
-		if *o.TagIsLatest {
-			tagWhereValues = append(tagWhereValues, "1")
-		} else {
-			tagWhereValues = append(tagWhereValues, "0")
-		}
-	}
-
-	if o.TagName != "" {
-		tagWhereQuery = append(tagWhereQuery, "imagespy_tag.name = ?")
-		tagWhereValues = append(tagWhereValues, o.TagName)
-	}
-
-	for _, image := range images {
-		tmpQ := make([]string, len(tagWhereQuery))
-		copy(tmpQ, tagWhereQuery)
-		tmpQ = append(tmpQ, "imagespy_tag.image_id = ?")
-		tmpW := make([]interface{}, len(tagWhereValues))
-		copy(tmpW, tagWhereValues)
-		tmpW = append(tmpW, image.ID)
-		result := gi.db.Where(strings.Join(tmpQ, " AND "), tmpW...).Find(&image.Tags)
-		if result.Error != nil {
-			return nil, result.Error
-		}
-	}
-
 	return images, nil
 }
 
@@ -247,22 +177,6 @@ func (gi *gormImage) Update(i *store.Image) error {
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
-	}
-
-	for _, t := range i.Tags {
-		if t.ID == 0 {
-			result := tx.Create(t)
-			if result.Error != nil {
-				tx.Rollback()
-				return result.Error
-			}
-		} else {
-			result := tx.Save(t)
-			if result.Error != nil {
-				tx.Rollback()
-				return result.Error
-			}
-		}
 	}
 
 	tx.Commit()
@@ -284,27 +198,82 @@ func (g *gormLayer) Create(l *store.Layer) error {
 		return tx.Error
 	}
 
-	result := tx.Create(l)
+	result := tx.FirstOrCreate(l, store.Layer{Digest: l.Digest})
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
 	}
 
-	for _, sid := range l.SourceImageIDs {
-		result := tx.Exec("insert into imagespy_layer_source_images (image_id, layer_id) values (?, ?)", sid, l.ID)
+	for _, imageID := range l.SourceImageIDs {
+		siid := &sourceImageOfLayer{
+			ImageID: imageID,
+			LayerID: l.ID,
+		}
+
+		result := tx.FirstOrCreate(siid, sourceImageOfLayer{ImageID: imageID, LayerID: l.ID})
 		if result.Error != nil {
 			tx.Rollback()
 			return result.Error
 		}
 	}
 
-	tx.Commit()
-	if tx.Error != nil {
+	lop := &layerOfPlatform{
+		LayerID:    l.ID,
+		PlatformID: l.PlatformID,
+		Position:   l.Position,
+	}
+	result = tx.FirstOrCreate(lop, layerOfPlatform{LayerID: l.ID, PlatformID: l.PlatformID, Position: l.Position})
+	if result.Error != nil {
 		tx.Rollback()
-		return tx.Error
+		return result.Error
+	}
+
+	result = tx.Commit()
+	if result.Error != nil {
+		tx.Rollback()
+		return result.Error
 	}
 
 	return nil
+}
+
+func (g *gormLayer) Get(o store.LayerGetOptions) (*store.Layer, error) {
+	if o.PlatformID == 0 {
+		return nil, fmt.Errorf("missing required option PlatformID")
+	}
+
+	if o.Digest == "" {
+		return nil, fmt.Errorf("missing required option Digest")
+	}
+
+	layer := &store.Layer{}
+	result := g.db.Joins("inner join imagespy_layerofplatform on imagespy_layerofplatform.layer_id = imagespy_layer.id").
+		Where("imagespy_layerofplatform.platform_id = ? AND imagespy_layer.digest = ?", o.PlatformID, o.Digest).Take(layer)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	layer.PlatformID = o.PlatformID
+	sourceImageIDs := []*sourceImageOfLayer{}
+	siolResult := g.db.Where("imagespy_layer_source_images.layer_id = ?", layer.ID).Find(&sourceImageIDs)
+	if siolResult.Error != nil {
+		return nil, siolResult.Error
+	}
+
+	for _, sid := range sourceImageIDs {
+		layer.SourceImageIDs = append(layer.SourceImageIDs, sid.ImageID)
+	}
+
+	lop := &layerOfPlatform{}
+	lopResult := g.db.Where("imagespy_layerofplatform.layer_id = ? AND imagespy_layerofplatform.platform_id = ?", layer.ID, layer.PlatformID).
+		First(lop)
+	if lopResult.Error != nil {
+		return nil, lopResult.Error
+	}
+
+	layer.Position = lop.Position
+
+	return layer, nil
 }
 
 func (g *gormLayer) List(o store.LayerListOptions) ([]*store.Layer, error) {
@@ -325,6 +294,14 @@ func (g *gormLayer) List(o store.LayerListOptions) ([]*store.Layer, error) {
 	}
 
 	for _, l := range layers {
+		lop := &layerOfPlatform{}
+		result := g.db.Where("imagespy_layerofplatform.layer_id = ?", l.ID).Take(&lop)
+		if result.Error != nil {
+			return nil, result.Error
+		}
+
+		l.PlatformID = lop.PlatformID
+		l.Position = lop.Position
 		rows, err := g.db.Raw("select image_id from imagespy_layer_source_images where layer_id = ?", l.ID).Rows()
 		if err != nil {
 			rows.Close()
@@ -381,14 +358,48 @@ type gormPlatform struct {
 	db *gormlib.DB
 }
 
+func (g *gormPlatform) Create(p *store.Platform) error {
+	result := g.db.Create(p)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
 func (g *gormPlatform) List(o store.PlatformListOptions) ([]*store.Platform, error) {
 	platforms := []*store.Platform{}
-	result := g.db.Joins("inner join imagespy_layerofplatform on imagespy_layerofplatform.platform_id = imagespy_platform.id").
-		Joins("inner join imagespy_layer on imagespy_layer.id = imagespy_layerofplatform.layer_id").
-		Where("imagespy_layer.digest = ?", o.LayerDigest).
-		Find(&platforms)
+	query := g.db
+	if o.LayerDigest != "" {
+		query = query.Joins("inner join imagespy_layerofplatform on imagespy_layerofplatform.platform_id = imagespy_platform.id").
+			Joins("inner join imagespy_layer on imagespy_layer.id = imagespy_layerofplatform.layer_id").
+			Where("imagespy_layer.digest = ?", o.LayerDigest)
+	}
+
+	result := query.Find(&platforms)
 	if result.Error != nil {
 		return nil, result.Error
+	}
+
+	for _, p := range platforms {
+		features := []*store.Feature{}
+		featuresResult := g.db.Joins("inner join imagespy_platform_features on imagespy_platform_features.feature_id = imagespy_feature.id").
+			Where("imagespy_platform_features.platform_id = ?", p.ID).
+			Find(&features)
+		if featuresResult.Error != nil {
+			return nil, featuresResult.Error
+		}
+
+		p.Features = features
+		osFeatures := []*store.OSFeature{}
+		osFeaturesResult := g.db.Joins("inner join imagespy_platform_os_features on imagespy_platform_os_features.osfeature_id = imagespy_osfeature.id").
+			Where("imagespy_platform_os_features.platform_id = ?", p.ID).
+			Find(&osFeatures)
+		if osFeaturesResult.Error != nil {
+			return nil, osFeaturesResult.Error
+		}
+
+		p.OSFeatures = osFeatures
 	}
 
 	return platforms, nil
@@ -396,6 +407,15 @@ func (g *gormPlatform) List(o store.PlatformListOptions) ([]*store.Platform, err
 
 type gormTag struct {
 	db *gormlib.DB
+}
+
+func (g *gormTag) Create(tag *store.Tag) error {
+	result := g.db.Create(tag)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }
 
 func (g *gormTag) Get(o store.TagGetOptions) (*store.Tag, error) {
@@ -446,7 +466,14 @@ func (g *gormTag) Get(o store.TagGetOptions) (*store.Tag, error) {
 
 func (g *gormTag) List(o store.TagListOptions) ([]*store.Tag, error) {
 	tags := []*store.Tag{}
-	result := g.db.Where("imagespy_tag.image_id = ?", o.ImageID).Find(&tags)
+	whereQuery := []string{}
+	whereValues := []interface{}{}
+	if o.ImageID != 0 {
+		whereQuery = append(whereQuery, "imagespy_tag.image_id = ?")
+		whereValues = append(whereValues, o.ImageID)
+	}
+
+	result := g.db.Where(strings.Join(whereQuery, " AND "), whereValues...).Find(&tags)
 	if result.Error != nil {
 		return nil, result.Error
 	}
