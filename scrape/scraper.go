@@ -18,7 +18,9 @@ type Work struct {
 
 type Scraper interface {
 	ScrapeImage(i registry.Image) error
+	ScrapeImagesByName(names []string)
 	ScrapeLatestImage(i registry.Image) error
+	ScrapeLatestImagesByName(names []string)
 }
 
 func NewScraper(reg registry.Registry, s store.Store) Scraper {
@@ -33,22 +35,6 @@ type async struct {
 	reg      registry.Registry
 	store    store.Store
 	timeFunc func() time.Time
-}
-
-func (a *async) ScrapeLatestImageForImages(imageNames []string) {
-	for _, name := range imageNames {
-		regImg, err := a.reg.Image(name)
-		if err != nil {
-			log.Errorf("retrieve image %s: %s", name, err)
-			continue
-		}
-
-		err = a.ScrapeLatestImage(regImg)
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-	}
 }
 
 func (a *async) ScrapeImage(i registry.Image) error {
@@ -112,6 +98,21 @@ func (a *async) ScrapeImage(i registry.Image) error {
 	}
 
 	return fmt.Errorf("ScrapeImage: reading image with digest %s failed: %s", digest, err)
+}
+
+func (a *async) ScrapeImagesByName(names []string) {
+	for _, n := range names {
+		regImage, err := a.reg.Image(n)
+		if err != nil {
+			log.Errorf("ScrapeImagesByName - create image from name '%s': %s", n, err)
+			continue
+		}
+
+		err = a.ScrapeImage(regImage)
+		if err != nil {
+			log.Errorf("ScrapeImagesByName - scrape image '%s': %s", n, err)
+		}
+	}
 }
 
 func (a *async) ScrapeLatestImage(i registry.Image) error {
@@ -225,6 +226,21 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 	}
 
 	return nil
+}
+
+func (a *async) ScrapeLatestImagesByName(names []string) {
+	for _, n := range names {
+		regImage, err := a.reg.Image(n)
+		if err != nil {
+			log.Warnf("ScrapeLatestImagesByName - create image from name '%s': %s", n, err)
+			continue
+		}
+
+		err = a.ScrapeLatestImage(regImage)
+		if err != nil {
+			log.Warnf("ScrapeLatestImagesByName - scrape image '%s': %s", n, err)
+		}
+	}
 }
 
 func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image) (*store.Image, []*store.Layer, error) {

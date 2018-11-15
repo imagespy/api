@@ -2,16 +2,11 @@ package web
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
-	"net/url"
 	"sync"
 
 	"github.com/imagespy/api/versionparser"
 
-	"github.com/docker/distribution/manifest/schema2"
-	"github.com/docker/distribution/notifications"
 	"github.com/go-chi/chi"
 	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
@@ -36,8 +31,6 @@ type Handler struct {
 	imageSerializer func(image *store.Image, tags []*store.Tag, latestImage *store.Image, latestTags []*store.Tag) ([]byte, error)
 	scraper         scrape.Scraper
 	Store           store.Store
-	eventDedup      map[string]struct{}
-	eventDedupMutex *sync.RWMutex
 }
 
 func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
@@ -129,64 +122,6 @@ func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func (h *Handler) registryEvent(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != notifications.EventsMediaType {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	payload, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Errorf("Unable to read registry event paylod: %s", err)
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	defer r.Body.Close()
-	envelope := &notifications.Envelope{}
-	err = json.Unmarshal(payload, envelope)
-	if err != nil {
-		log.Errorf("Unable to unmarshal registry event paylod: %s", err)
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	for _, event := range envelope.Events {
-		if event.Action != notifications.EventActionPush || event.Target.MediaType != schema2.MediaTypeManifest {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		targetURL, err := url.ParseRequestURI(event.Target.URL)
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-
-		imageName := fmt.Sprintf("%s:%s/%s:%s", targetURL.Hostname(), targetURL.Port(), event.Target.Repository, event.Target.Tag)
-		h.eventDedupMutex.RLock()
-		_, exists := h.eventDedup[imageName]
-		h.eventDedupMutex.RUnlock()
-		if !exists {
-			h.eventDedupMutex.Lock()
-			h.eventDedup[imageName] = struct{}{}
-			h.eventDedupMutex.Unlock()
-			go func() {
-				defer func() {
-					h.eventDedupMutex.Lock()
-					delete(h.eventDedup, imageName)
-					h.eventDedupMutex.Unlock()
-				}()
-
-				// _, _, err := h.scrapeImageAndLatestImage(imageName)
-				// if err != nil {
-				// 	log.Error(err)
-				// }
-			}()
-		}
-	}
-}
-
 func jsonImageSerializer(image *store.Image, tags []*store.Tag, latestImage *store.Image, latestTags []*store.Tag) ([]byte, error) {
 	imageSerialized := &imageSerialize{
 		Digest: image.Digest,
@@ -215,14 +150,19 @@ func jsonImageSerializer(image *store.Image, tags []*store.Tag, latestImage *sto
 
 func Init(scraper scrape.Scraper, store store.Store) http.Handler {
 	h := &Handler{
-		eventDedup:      map[string]struct{}{},
-		eventDedupMutex: &sync.RWMutex{},
 		imageSerializer: jsonImageSerializer,
 		scraper:         scraper,
 		Store:           store,
 	}
+
+	rh := registryHandler{
+		eventDedup:      map[string]struct{}{},
+		eventDedupMutex: &sync.RWMutex{},
+		scraper:         scraper,
+	}
+
 	r := chi.NewRouter()
 	r.Get("/v2/images/*", h.Image)
-	r.Post("/event", h.registryEvent)
+	r.Post("/registry/event", rh.registryEvent)
 	return r
 }
