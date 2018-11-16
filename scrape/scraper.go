@@ -290,6 +290,7 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 
 	layers := []*store.Layer{}
 	layerClient := a.store.Layers()
+	layerPositionClient := a.store.LayerPositions()
 	platformClient := a.store.Platforms()
 	for _, p := range regPlatforms {
 		regManifest, err := p.Manifest()
@@ -339,10 +340,17 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 				return nil, nil, err
 			}
 
-			layer := &store.Layer{Digest: layerDigest, PlatformID: platform.ID, Position: idx}
+			layer := &store.Layer{Digest: layerDigest}
 			err = layerClient.Create(layer)
 			if err != nil {
 				log.Errorf("unable to create layer %s for platform %s: %s", layer.Digest, platform.ManifestDigest, err)
+				break
+			}
+
+			layerPosition := &store.LayerPosition{LayerID: layer.ID, PlatformID: platform.ID, Position: idx}
+			err = layerPositionClient.Create(layerPosition)
+			if err != nil {
+				log.Errorf("unable to create layer position '%d' for layer '%s' for platform '%s': %s", idx, layer.Digest, platform.ManifestDigest, err)
 				break
 			}
 
@@ -354,24 +362,25 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 }
 
 func (a *async) updateSourceImagesOfLayer(l *store.Layer) error {
-	layerClient := a.store.Layers()
 	platforms, err := a.store.Platforms().List(store.PlatformListOptions{LayerDigest: l.Digest})
 	if err != nil {
 		return err
 	}
 
+	layerClient := a.store.Layers()
+	layerPositionClient := a.store.LayerPositions()
 	length := 1000
 	var sourcePlatforms []*store.Platform
 	for _, p := range platforms {
-		layers, err := layerClient.List(store.LayerListOptions{PlatformID: p.ID})
+		layerPositions, err := layerPositionClient.List(store.LayerPositionListOptions{PlatformID: p.ID})
 		if err != nil {
 			return err
 		}
 
-		if len(layers) < length {
-			length = len(layers)
+		if len(layerPositions) < length {
+			length = len(layerPositions)
 			sourcePlatforms = []*store.Platform{p}
-		} else if len(layers) == length {
+		} else if len(layerPositions) == length {
 			sourcePlatforms = append(sourcePlatforms, p)
 		}
 	}

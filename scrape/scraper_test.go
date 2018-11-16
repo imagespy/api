@@ -37,11 +37,13 @@ type testcase struct {
 	imageToScrape              registry.Image
 	imagesInDatabase           []*store.Image
 	layersInDatabase           []*store.Layer
+	layerPositionsInDatabase   []*store.LayerPosition
 	platformsInDatabase        []*store.Platform
 	tagsInDatabase             []*store.Tag
 	additionalImagesInRegistry []registry.Image
 	expectedImages             []*store.Image
 	expectedLayers             []*store.Layer
+	expectedLayerPositions     []*store.LayerPosition
 	expectedPlatforms          []*store.Platform
 	expectedTags               []*store.Tag
 }
@@ -105,6 +107,13 @@ func executeTest(t *testing.T, tc testcase, funcToTest string) {
 			}
 		}
 
+		for _, lpid := range tc.layerPositionsInDatabase {
+			err := s.LayerPositions().Create(lpid)
+			if err != nil {
+				t.Fatalf("creating layer position in database failed: %s", err)
+			}
+		}
+
 		for _, tid := range tc.tagsInDatabase {
 			err := s.Tags().Create(tid)
 			if err != nil {
@@ -157,6 +166,15 @@ func executeTest(t *testing.T, tc testcase, funcToTest string) {
 			assert.EqualValues(t, tc.expectedLayers, storedLayers)
 		}
 
+		if len(tc.expectedLayerPositions) > 0 {
+			storedLayerPositions, err := s.LayerPositions().List(store.LayerPositionListOptions{})
+			require.NoError(t, err)
+
+			sort.Slice(tc.expectedLayerPositions, func(i, j int) bool { return tc.expectedLayerPositions[i].ID < tc.expectedLayerPositions[j].ID })
+			sort.Slice(storedLayerPositions, func(i, j int) bool { return storedLayerPositions[i].ID < storedLayerPositions[j].ID })
+			assert.EqualValues(t, tc.expectedLayerPositions, storedLayerPositions)
+		}
+
 		if len(tc.expectedTags) > 0 {
 			storedTags, err := s.Tags().List(store.TagListOptions{})
 			require.NoError(t, err)
@@ -192,8 +210,12 @@ func TestAsync_ScrapeImage(t *testing.T) {
 				},
 			},
 			expectedLayers: []*store.Layer{
-				{Digest: "l123", Model: store.Model{ID: 1}, PlatformID: 1, Position: 0, SourceImageIDs: []int{1}},
-				{Digest: "l456", Model: store.Model{ID: 2}, PlatformID: 1, Position: 1, SourceImageIDs: []int{1}},
+				{Digest: "l123", Model: store.Model{ID: 1}, SourceImageIDs: []int{1}},
+				{Digest: "l456", Model: store.Model{ID: 2}, SourceImageIDs: []int{1}},
+			},
+			expectedLayerPositions: []*store.LayerPosition{
+				{LayerID: 1, Model: store.Model{ID: 1}, PlatformID: 1, Position: 0},
+				{LayerID: 2, Model: store.Model{ID: 2}, PlatformID: 1, Position: 1},
 			},
 			expectedPlatforms: []*store.Platform{
 				{
@@ -396,8 +418,12 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 				"2",
 			),
 			expectedLayers: []*store.Layer{
-				{Digest: "l1", Model: store.Model{ID: 1}, PlatformID: 1, Position: 0, SourceImageIDs: []int{1}},
-				{Digest: "l2", Model: store.Model{ID: 2}, PlatformID: 1, Position: 1, SourceImageIDs: []int{1}},
+				{Digest: "l1", Model: store.Model{ID: 1}, SourceImageIDs: []int{1}},
+				{Digest: "l2", Model: store.Model{ID: 2}, SourceImageIDs: []int{1}},
+			},
+			expectedLayerPositions: []*store.LayerPosition{
+				{LayerID: 1, Model: store.Model{ID: 1}, PlatformID: 1, Position: 0},
+				{LayerID: 2, Model: store.Model{ID: 2}, PlatformID: 1, Position: 1},
 			},
 		},
 		{
@@ -412,9 +438,14 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 				},
 			},
 			layersInDatabase: []*store.Layer{
-				{Digest: "l1", PlatformID: 1, Position: 0, SourceImageIDs: []int{1}},
-				{Digest: "l2", PlatformID: 1, Position: 1, SourceImageIDs: []int{1}},
-				{Digest: "l3", PlatformID: 1, Position: 2, SourceImageIDs: []int{1}},
+				{Digest: "l1", SourceImageIDs: []int{1}},
+				{Digest: "l2", SourceImageIDs: []int{1}},
+				{Digest: "l3", SourceImageIDs: []int{1}},
+			},
+			layerPositionsInDatabase: []*store.LayerPosition{
+				{LayerID: 1, Model: store.Model{ID: 1}, PlatformID: 1, Position: 0},
+				{LayerID: 2, Model: store.Model{ID: 2}, PlatformID: 1, Position: 1},
+				{LayerID: 3, Model: store.Model{ID: 3}, PlatformID: 1, Position: 2},
 			},
 			platformsInDatabase: []*store.Platform{
 				{
@@ -436,9 +467,16 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 				"2",
 			),
 			expectedLayers: []*store.Layer{
-				{Digest: "l1", Model: store.Model{ID: 1}, PlatformID: 1, Position: 0, SourceImageIDs: []int{2}},
-				{Digest: "l2", Model: store.Model{ID: 2}, PlatformID: 1, Position: 1, SourceImageIDs: []int{2}},
-				{Digest: "l3", Model: store.Model{ID: 3}, PlatformID: 1, Position: 2, SourceImageIDs: []int{1}},
+				{Digest: "l1", Model: store.Model{ID: 1}, SourceImageIDs: []int{2}},
+				{Digest: "l2", Model: store.Model{ID: 2}, SourceImageIDs: []int{2}},
+				{Digest: "l3", Model: store.Model{ID: 3}, SourceImageIDs: []int{1}},
+			},
+			expectedLayerPositions: []*store.LayerPosition{
+				{LayerID: 1, Model: store.Model{ID: 1}, PlatformID: 1, Position: 0},
+				{LayerID: 2, Model: store.Model{ID: 2}, PlatformID: 1, Position: 1},
+				{LayerID: 3, Model: store.Model{ID: 3}, PlatformID: 1, Position: 2},
+				{LayerID: 1, Model: store.Model{ID: 4}, PlatformID: 2, Position: 0},
+				{LayerID: 2, Model: store.Model{ID: 5}, PlatformID: 2, Position: 1},
 			},
 		},
 	}

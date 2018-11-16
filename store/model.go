@@ -31,46 +31,25 @@ func (Image) TableName() string {
 	return "imagespy_image"
 }
 
-// func (i *Image) HasTag(t *Tag) bool {
-// 	for _, tag := range i.Tags {
-// 		if tag.Name == t.Name {
-// 			return true
-// 		}
-// 	}
-
-// 	return false
-// }
-
-// func (i *Image) FindTag(name string) (*Tag, error) {
-// 	for _, t := range i.Tags {
-// 		if t.Name == name {
-// 			return t, nil
-// 		}
-// 	}
-
-// 	return nil, fmt.Errorf("image %s does not have tag %s", i.Name, name)
-// }
-
-// func (i *Image) FindLatestTagByDistiction(d string) (*Tag, error) {
-// 	for _, t := range i.Tags {
-// 		if t.IsLatest && t.Distinction == d {
-// 			return t, nil
-// 		}
-// 	}
-
-// 	return nil, fmt.Errorf("image %s does not have tag with distinction %s", i.Name, d)
-// }
-
 type Layer struct {
 	Model
 	Digest         string
-	PlatformID     int   `gorm:"-"`
-	Position       int   `gorm:"-"`
 	SourceImageIDs []int `gorm:"-"`
 }
 
 func (Layer) TableName() string {
 	return "imagespy_layer"
+}
+
+type LayerPosition struct {
+	Model
+	LayerID    int
+	PlatformID int
+	Position   int
+}
+
+func (LayerPosition) TableName() string {
+	return "imagespy_layerofplatform"
 }
 
 type OSFeature struct {

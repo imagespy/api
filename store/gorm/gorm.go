@@ -8,17 +8,6 @@ import (
 	gormlib "github.com/jinzhu/gorm"
 )
 
-type layerOfPlatform struct {
-	store.Model
-	LayerID    int
-	PlatformID int
-	Position   int
-}
-
-func (layerOfPlatform) TableName() string {
-	return "imagespy_layerofplatform"
-}
-
 type sourceImageOfLayer struct {
 	store.Model
 	ImageID int
@@ -39,6 +28,10 @@ func (g *gorm) Images() store.ImageStore {
 
 func (g *gorm) Layers() store.LayerStore {
 	return &gormLayer{db: g.db}
+}
+
+func (g *gorm) LayerPositions() store.LayerPositionStore {
+	return &gormLayerPosition{db: g.db}
 }
 
 func (g *gorm) Platforms() store.PlatformStore {
@@ -217,17 +210,6 @@ func (g *gormLayer) Create(l *store.Layer) error {
 		}
 	}
 
-	lop := &layerOfPlatform{
-		LayerID:    l.ID,
-		PlatformID: l.PlatformID,
-		Position:   l.Position,
-	}
-	result = tx.FirstOrCreate(lop, layerOfPlatform{LayerID: l.ID, PlatformID: l.PlatformID, Position: l.Position})
-	if result.Error != nil {
-		tx.Rollback()
-		return result.Error
-	}
-
 	result = tx.Commit()
 	if result.Error != nil {
 		tx.Rollback()
@@ -238,22 +220,24 @@ func (g *gormLayer) Create(l *store.Layer) error {
 }
 
 func (g *gormLayer) Get(o store.LayerGetOptions) (*store.Layer, error) {
-	if o.PlatformID == 0 {
-		return nil, fmt.Errorf("missing required option PlatformID")
-	}
-
 	if o.Digest == "" {
 		return nil, fmt.Errorf("missing required option Digest")
 	}
 
+	whereQuery := []string{"imagespy_layer.digest = ?"}
+	whereValues := []interface{}{o.Digest}
+	query := g.db
+
 	layer := &store.Layer{}
-	result := g.db.Joins("inner join imagespy_layerofplatform on imagespy_layerofplatform.layer_id = imagespy_layer.id").
-		Where("imagespy_layerofplatform.platform_id = ? AND imagespy_layer.digest = ?", o.PlatformID, o.Digest).Take(layer)
+	result := query.Where(strings.Join(whereQuery, " AND "), whereValues...).First(layer)
 	if result.Error != nil {
+		if result.Error == gormlib.ErrRecordNotFound {
+			return nil, store.ErrDoesNotExist
+		}
+
 		return nil, result.Error
 	}
 
-	layer.PlatformID = o.PlatformID
 	sourceImageIDs := []*sourceImageOfLayer{}
 	siolResult := g.db.Where("imagespy_layer_source_images.layer_id = ?", layer.ID).Find(&sourceImageIDs)
 	if siolResult.Error != nil {
@@ -263,15 +247,6 @@ func (g *gormLayer) Get(o store.LayerGetOptions) (*store.Layer, error) {
 	for _, sid := range sourceImageIDs {
 		layer.SourceImageIDs = append(layer.SourceImageIDs, sid.ImageID)
 	}
-
-	lop := &layerOfPlatform{}
-	lopResult := g.db.Where("imagespy_layerofplatform.layer_id = ? AND imagespy_layerofplatform.platform_id = ?", layer.ID, layer.PlatformID).
-		First(lop)
-	if lopResult.Error != nil {
-		return nil, lopResult.Error
-	}
-
-	layer.Position = lop.Position
 
 	return layer, nil
 }
@@ -294,14 +269,6 @@ func (g *gormLayer) List(o store.LayerListOptions) ([]*store.Layer, error) {
 	}
 
 	for _, l := range layers {
-		lop := &layerOfPlatform{}
-		result := g.db.Where("imagespy_layerofplatform.layer_id = ?", l.ID).Take(&lop)
-		if result.Error != nil {
-			return nil, result.Error
-		}
-
-		l.PlatformID = lop.PlatformID
-		l.Position = lop.Position
 		rows, err := g.db.Raw("select image_id from imagespy_layer_source_images where layer_id = ?", l.ID).Rows()
 		if err != nil {
 			rows.Close()
@@ -352,6 +319,41 @@ func (g *gormLayer) Update(l *store.Layer) error {
 	}
 
 	return nil
+}
+
+type gormLayerPosition struct {
+	db *gormlib.DB
+}
+
+func (g *gormLayerPosition) Create(lp *store.LayerPosition) error {
+	result := g.db.FirstOrCreate(lp, store.LayerPosition{LayerID: lp.LayerID, PlatformID: lp.PlatformID, Position: lp.Position})
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
+func (g *gormLayerPosition) List(o store.LayerPositionListOptions) ([]*store.LayerPosition, error) {
+	whereQuery := []string{}
+	whereValues := []interface{}{}
+	if o.LayerID != 0 {
+		whereQuery = append(whereQuery, "imagespy_layerofplatform.layer_id = ?")
+		whereValues = append(whereValues, o.LayerID)
+	}
+
+	if o.PlatformID != 0 {
+		whereQuery = append(whereQuery, "imagespy_layerofplatform.platform_id = ?")
+		whereValues = append(whereValues, o.PlatformID)
+	}
+
+	lp := []*store.LayerPosition{}
+	result := g.db.Where(strings.Join(whereQuery, " AND "), whereValues...).Find(&lp)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return lp, nil
 }
 
 type gormPlatform struct {

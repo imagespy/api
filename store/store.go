@@ -11,6 +11,7 @@ var (
 type Store interface {
 	Images() ImageStore
 	Layers() LayerStore
+	LayerPositions() LayerPositionStore
 	Platforms() PlatformStore
 	Tags() TagStore
 }
@@ -44,11 +45,20 @@ type LayerStore interface {
 }
 
 type LayerGetOptions struct {
-	Digest     string
-	PlatformID int
+	Digest string
 }
 
 type LayerListOptions struct {
+	PlatformID int
+}
+
+type LayerPositionStore interface {
+	Create(*LayerPosition) error
+	List(o LayerPositionListOptions) ([]*LayerPosition, error)
+}
+
+type LayerPositionListOptions struct {
+	LayerID    int
 	PlatformID int
 }
 

@@ -28,9 +28,9 @@ type latestImageSerialize struct {
 }
 
 type Handler struct {
-	imageSerializer func(image *store.Image, tags []*store.Tag, latestImage *store.Image, latestTags []*store.Tag) ([]byte, error)
-	scraper         scrape.Scraper
-	Store           store.Store
+	serializer func(interface{}) ([]byte, error)
+	scraper    scrape.Scraper
+	Store      store.Store
 }
 
 func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +110,8 @@ func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b, err := h.imageSerializer(image, tags, latestImage, latestTags)
+	serialization := convertImageToResult(image, tags, latestImage, latestTags)
+	b, err := h.serializer(serialization)
 	if err != nil {
 		log.Errorf("serializing image, latest image and tags: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -122,7 +123,7 @@ func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func jsonImageSerializer(image *store.Image, tags []*store.Tag, latestImage *store.Image, latestTags []*store.Tag) ([]byte, error) {
+func convertImageToResult(image *store.Image, tags []*store.Tag, latestImage *store.Image, latestTags []*store.Tag) *imageSerialize {
 	imageSerialized := &imageSerialize{
 		Digest: image.Digest,
 		Name:   image.Name,
@@ -140,29 +141,30 @@ func jsonImageSerializer(image *store.Image, tags []*store.Tag, latestImage *sto
 	}
 
 	imageSerialized.LatestImage = latestImageSerialized
-	b, err := json.Marshal(imageSerialized)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	return b, nil
+	return imageSerialized
 }
 
 func Init(scraper scrape.Scraper, store store.Store) http.Handler {
 	h := &Handler{
-		imageSerializer: jsonImageSerializer,
-		scraper:         scraper,
-		Store:           store,
+		serializer: json.Marshal,
+		scraper:    scraper,
+		Store:      store,
 	}
 
-	rh := registryHandler{
+	rh := &registryHandler{
 		eventDedup:      map[string]struct{}{},
 		eventDedupMutex: &sync.RWMutex{},
 		scraper:         scraper,
 	}
 
+	lh := &layersHandler{
+		serializer: json.Marshal,
+		store:      store,
+	}
+
 	r := chi.NewRouter()
 	r.Get("/v2/images/*", h.Image)
+	r.Get("/v2/layers/{digest}", lh.layers)
 	r.Post("/registry/event", rh.registryEvent)
 	return r
 }
