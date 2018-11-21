@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/gorilla/mux"
+
 	"github.com/imagespy/api/versionparser"
 
-	"github.com/go-chi/chi"
 	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
 	"github.com/imagespy/api/store"
@@ -27,14 +28,15 @@ type latestImageSerialize struct {
 	Tags   []string `json:"tags"`
 }
 
-type Handler struct {
+type imageHandler struct {
 	serializer func(interface{}) ([]byte, error)
 	scraper    scrape.Scraper
 	Store      store.Store
 }
 
-func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
-	imageID := chi.URLParam(r, "*")
+func (h *imageHandler) Images(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	imageID := vars["name"]
 	address, path, tagInput, _, err := registry.ParseImage(imageID)
 	if err != nil {
 		log.Error(err)
@@ -123,6 +125,95 @@ func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
+func (h *imageHandler) ImageLayers(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	imageID := vars["name"]
+	address, path, tagInput, _, err := registry.ParseImage(imageID)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	image, err := h.Store.Images().Get(store.ImageGetOptions{
+		Name:    address + "/" + path,
+		TagName: tagInput,
+	})
+	if err != nil {
+		if err == store.ErrDoesNotExist {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		log.Errorf("layersHandler.layers: reading image: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	platform, err := h.Store.Platforms().Get(store.PlatformGetOptions{
+		Architecture: getQueryParam(r, "arch", "amd64"),
+		ImageID:      image.ID,
+		OS:           getQueryParam(r, "os", "linux"),
+		OSVersion:    getQueryParam(r, "os_version", ""),
+		Variant:      getQueryParam(r, "variant", ""),
+	})
+	if err != nil {
+		if err == store.ErrDoesNotExist {
+			log.Info("layersHandler.layers: platform does not exist")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		log.Errorf("layersHandler.layers: reading platform of image '%d': %s", image.ID, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	layerPositions, err := h.Store.LayerPositions().List(store.LayerPositionListOptions{PlatformID: platform.ID})
+	if err != nil {
+		log.Errorf("layersHandler.layers: reading layer position of platform '%d': %s", platform.ID, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	result := []*layerSerialize{}
+	layersClient := h.Store.Layers()
+	for _, lp := range layerPositions {
+		layer, err := layersClient.Get(store.LayerGetOptions{ID: lp.LayerID})
+		if err != nil {
+			log.Errorf("layersHandler.layers: reading layer of position '%d': %s", lp.ID, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		serialization := &layerSerialize{Digest: layer.Digest}
+		for _, sourceImageID := range layer.SourceImageIDs {
+			sourceImage, sourceImageTags, latestImage, latestTags, err := findSourceImageOfLayer(sourceImageID, h.Store)
+			if err != nil {
+				log.Errorf("layersHandler.layers: reading source image '%d': %s", sourceImageID, err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			imageSerialization := convertImageToResult(sourceImage, sourceImageTags, latestImage, latestTags)
+			serialization.SourceImages = append(serialization.SourceImages, imageSerialization)
+		}
+
+		result = append(result, serialization)
+	}
+
+	b, err := h.serializer(result)
+	if err != nil {
+		log.Errorf("layersHandler.layers: serializing result: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(b)
+}
+
 func convertImageToResult(image *store.Image, tags []*store.Tag, latestImage *store.Image, latestTags []*store.Tag) *imageSerialize {
 	imageSerialized := &imageSerialize{
 		Digest: image.Digest,
@@ -145,7 +236,7 @@ func convertImageToResult(image *store.Image, tags []*store.Tag, latestImage *st
 }
 
 func Init(scraper scrape.Scraper, store store.Store) http.Handler {
-	h := &Handler{
+	h := &imageHandler{
 		serializer: json.Marshal,
 		scraper:    scraper,
 		Store:      store,
@@ -162,9 +253,19 @@ func Init(scraper scrape.Scraper, store store.Store) http.Handler {
 		store:      store,
 	}
 
-	r := chi.NewRouter()
-	r.Get("/v2/images/*", h.Image)
-	r.Get("/v2/layers/{digest}", lh.layers)
-	r.Post("/registry/event", rh.registryEvent)
+	r := mux.NewRouter()
+	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}/layers`, h.ImageLayers).Methods("GET")
+	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}`, h.Images).Methods("GET")
+	r.HandleFunc("/v2/layers/{digest}", lh.layers).Methods("GET")
+	r.HandleFunc("/registry/event", rh.registryEvent).Methods("POST")
 	return r
+}
+
+func getQueryParam(r *http.Request, key, defaultVal string) string {
+	v := r.URL.Query().Get(key)
+	if v == "" {
+		return defaultVal
+	}
+
+	return v
 }

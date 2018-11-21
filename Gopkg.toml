@@ -49,13 +49,13 @@
   version = "1.4.0"
 
 [[constraint]]
-  name = "github.com/go-chi/chi"
-  version = "3.3.3"
-
-[[constraint]]
   name = "github.com/sirupsen/logrus"
   version = "1.0.6"
 
 [[constraint]]
   name = "github.com/golang-migrate/migrate"
   version = "3.5.4"
+
+[[constraint]]
+  name = "github.com/gorilla/mux"
+  version = "1.6.2"

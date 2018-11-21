@@ -5,9 +5,11 @@ import (
 )
 
 var (
+	// ErrDoesNotExist is returned if the requested model could not be found in the store.
 	ErrDoesNotExist = errors.New("Model does not exist")
 )
 
+// Store represents the high-level API to access models.
 type Store interface {
 	Images() ImageStore
 	Layers() LayerStore
@@ -16,6 +18,7 @@ type Store interface {
 	Tags() TagStore
 }
 
+// ImageStore allows creating, manipulating and reading images.
 type ImageStore interface {
 	Create(i *Image) error
 	Get(o ImageGetOptions) (*Image, error)
@@ -23,6 +26,7 @@ type ImageStore interface {
 	Update(i *Image) error
 }
 
+// ImageGetOptions is used to query image with certain criterias.
 type ImageGetOptions struct {
 	Digest         string
 	ID             int
@@ -46,6 +50,7 @@ type LayerStore interface {
 
 type LayerGetOptions struct {
 	Digest string
+	ID     int
 }
 
 type LayerListOptions struct {
@@ -64,7 +69,16 @@ type LayerPositionListOptions struct {
 
 type PlatformStore interface {
 	Create(*Platform) error
+	Get(o PlatformGetOptions) (*Platform, error)
 	List(o PlatformListOptions) ([]*Platform, error)
+}
+
+type PlatformGetOptions struct {
+	Architecture string
+	ImageID      int
+	OS           string
+	OSVersion    string
+	Variant      string
 }
 
 type PlatformListOptions struct {

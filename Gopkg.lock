@@ -134,14 +134,6 @@
   version = "v0.15.5"
 
 [[projects]]
-  digest = "1:b9914f85d95a0968bafd1be1908ba29e2eafafd88d6fd13696be42bf5368c380"
-  name = "github.com/go-chi/chi"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "b5294d10673813fac8558e7f47242bc9e61b4c25"
-  version = "v3.3.3"
-
-[[projects]]
   digest = "1:adea5a94903eb4384abef30f3d878dc9ff6b6b5b0722da25b82e5169216dfb61"
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
@@ -365,11 +357,11 @@
     "github.com/docker/docker/image",
     "github.com/docker/docker/image/v1",
     "github.com/genuinetools/reg/registry",
-    "github.com/go-chi/chi",
     "github.com/go-sql-driver/mysql",
     "github.com/golang-migrate/migrate",
     "github.com/golang-migrate/migrate/database/mysql",
     "github.com/golang-migrate/migrate/source/file",
+    "github.com/gorilla/mux",
     "github.com/jinzhu/gorm",
     "github.com/opencontainers/go-digest",
     "github.com/sirupsen/logrus",

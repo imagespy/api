@@ -220,16 +220,20 @@ func (g *gormLayer) Create(l *store.Layer) error {
 }
 
 func (g *gormLayer) Get(o store.LayerGetOptions) (*store.Layer, error) {
-	if o.Digest == "" {
-		return nil, fmt.Errorf("missing required option Digest")
+	whereQuery := []string{}
+	whereValues := []interface{}{}
+	if o.Digest != "" {
+		whereQuery = append(whereQuery, "imagespy_layer.digest = ?")
+		whereValues = append(whereValues, o.Digest)
 	}
 
-	whereQuery := []string{"imagespy_layer.digest = ?"}
-	whereValues := []interface{}{o.Digest}
-	query := g.db
+	if o.ID != 0 {
+		whereQuery = append(whereQuery, "imagespy_layer.id = ?")
+		whereValues = append(whereValues, o.ID)
+	}
 
 	layer := &store.Layer{}
-	result := query.Where(strings.Join(whereQuery, " AND "), whereValues...).First(layer)
+	result := g.db.Where(strings.Join(whereQuery, " AND "), whereValues...).First(layer)
 	if result.Error != nil {
 		if result.Error == gormlib.ErrRecordNotFound {
 			return nil, store.ErrDoesNotExist
@@ -348,7 +352,7 @@ func (g *gormLayerPosition) List(o store.LayerPositionListOptions) ([]*store.Lay
 	}
 
 	lp := []*store.LayerPosition{}
-	result := g.db.Where(strings.Join(whereQuery, " AND "), whereValues...).Find(&lp)
+	result := g.db.Where(strings.Join(whereQuery, " AND "), whereValues...).Order("imagespy_layerofplatform.position asc").Find(&lp)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -367,6 +371,42 @@ func (g *gormPlatform) Create(p *store.Platform) error {
 	}
 
 	return nil
+}
+
+func (g *gormPlatform) Get(o store.PlatformGetOptions) (*store.Platform, error) {
+	whereQuery := []string{}
+	whereValues := []interface{}{}
+	if o.Architecture != "" {
+		whereQuery = append(whereQuery, "imagespy_platform.architecture = ?")
+		whereValues = append(whereValues, o.Architecture)
+	}
+
+	if o.ImageID != 0 {
+		whereQuery = append(whereQuery, "imagespy_platform.image_id = ?")
+		whereValues = append(whereValues, o.ImageID)
+	}
+
+	if o.OS != "" {
+		whereQuery = append(whereQuery, "imagespy_platform.os = ?")
+		whereValues = append(whereValues, o.OS)
+	}
+
+	whereQuery = append(whereQuery, "imagespy_platform.os_version = ?")
+	whereValues = append(whereValues, o.OSVersion)
+	whereQuery = append(whereQuery, "imagespy_platform.variant = ?")
+	whereValues = append(whereValues, o.Variant)
+
+	p := &store.Platform{}
+	result := g.db.Where(strings.Join(whereQuery, " AND "), whereValues...).Take(p)
+	if result.Error != nil {
+		if result.Error == gormlib.ErrRecordNotFound {
+			return nil, store.ErrDoesNotExist
+		}
+
+		return nil, result.Error
+	}
+
+	return p, nil
 }
 
 func (g *gormPlatform) List(o store.PlatformListOptions) ([]*store.Platform, error) {

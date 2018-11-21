@@ -3,13 +3,13 @@ package web
 import (
 	"net/http"
 
-	"github.com/go-chi/chi"
+	"github.com/gorilla/mux"
 	"github.com/imagespy/api/store"
 	log "github.com/sirupsen/logrus"
 )
 
 type layerSerialize struct {
-	Digest       string
+	Digest       string            `json:"digest"`
 	SourceImages []*imageSerialize `json:"source_images"`
 }
 
@@ -19,7 +19,8 @@ type layersHandler struct {
 }
 
 func (h *layersHandler) layers(w http.ResponseWriter, r *http.Request) {
-	digestInput := chi.URLParam(r, "digest")
+	vars := mux.Vars(r)
+	digestInput := vars["digest"]
 	layer, err := h.store.Layers().Get(store.LayerGetOptions{Digest: digestInput})
 	if err != nil {
 		if err == store.ErrDoesNotExist {
@@ -33,38 +34,11 @@ func (h *layersHandler) layers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	imagesClient := h.store.Images()
-	tagsClient := h.store.Tags()
 	serialization := &layerSerialize{Digest: layer.Digest}
 	for _, sourceImageID := range layer.SourceImageIDs {
-		sourceImage, err := imagesClient.Get(store.ImageGetOptions{ID: sourceImageID})
+		sourceImage, sourceImageTags, latestImage, latestTags, err := findSourceImageOfLayer(sourceImageID, h.store)
 		if err != nil {
-			log.Errorf("getting source image '%d': %s", sourceImageID, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		sourceImageTags, err := tagsClient.List(store.TagListOptions{ImageID: sourceImage.ID})
-		if err != nil {
-			log.Errorf("reading tags of source image '%d': %s", sourceImageID, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		isLatestTag := true
-		latestImage, err := imagesClient.Get(store.ImageGetOptions{
-			Name:        sourceImage.Name,
-			TagIsLatest: &isLatestTag,
-		})
-		if err != nil {
-			log.Errorf("reading latest image of source image '%d': %s", sourceImageID, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		latestTags, err := tagsClient.List(store.TagListOptions{ImageID: latestImage.ID})
-		if err != nil {
-			log.Errorf("reading tags of latest image of source image '%d': %s", sourceImageID, err)
+			log.Errorf("layersHandler.layers: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
