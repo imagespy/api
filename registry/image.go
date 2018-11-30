@@ -106,18 +106,11 @@ func (i *image) populate() error {
 	switch manifest := rawManifest.(type) {
 	case *schema2.DeserializedManifest:
 		i.schemaVersion = manifest.SchemaVersion
-		d, err := i.regClient.Digest(i.parsed)
-		if err != nil {
-			return err
-		}
-
 		p := &PlatformV2{
 			architecture: "amd64",
-			digest:       d,
-			features:     []string{},
+			digest:       "",
 			image:        i,
 			os:           "linux",
-			osFeatures:   []string{},
 			osVersion:    "",
 			regClient:    i.regClient,
 			variant:      "",
@@ -148,7 +141,7 @@ func (i *image) populate() error {
 		}
 
 		p := &PlatformV1{
-			digest:    d,
+			digest:    "",
 			image:     i,
 			regClient: i.regClient,
 		}
