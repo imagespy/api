@@ -11,5 +11,6 @@ before_install:
 
 script:
   - make test
-  - make dev_migrate
-  - make test_scrape
+  - make download_migrate
+  - make DATABASE_PASS='' dev_migrate
+  - make DATABASE_PASS='' test_scrape
