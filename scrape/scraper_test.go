@@ -3,6 +3,7 @@ package scrape
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"sort"
 	"testing"
 	"time"
@@ -50,6 +51,11 @@ type testcase struct {
 
 func executeTest(t *testing.T, tc testcase, funcToTest string) {
 	t.Run(tc.name, func(t *testing.T) {
+		if os.Getenv("RUN_SCRAPE_TESTS") != "1" {
+			t.Skip("Not executing because scrape tests are disabled")
+			return
+		}
+
 		connection := "root:root@tcp(127.0.0.1:33306)/imagespy?charset=utf8&parseTime=True&loc=UTC"
 		db, err := sql.Open("mysql", connection)
 		if err != nil {
