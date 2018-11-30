@@ -8,14 +8,14 @@ import (
 type Config interface {
 	Digest() digest.Digest
 	History() ([]dockerImage.History, error)
-	MediaType() (string, error)
-	Size() (int, error)
+	MediaType() string
+	Size() int
 }
 
 type Layer interface {
 	Digest() (string, error)
-	MediaType() (string, error)
-	Size() (int, error)
+	MediaType() string
+	Size() int
 }
 
 type Manifest interface {

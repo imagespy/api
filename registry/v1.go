@@ -1,8 +1,6 @@
 package registry
 
 import (
-	"fmt"
-
 	"github.com/docker/distribution/manifest/schema1"
 	dockerImage "github.com/docker/docker/image"
 	imageV1 "github.com/docker/docker/image/v1"
@@ -23,12 +21,12 @@ func (c *ConfigV1) History() ([]dockerImage.History, error) {
 	return c.history, nil
 }
 
-func (c *ConfigV1) MediaType() (string, error) {
-	return "", fmt.Errorf("ConfigV1 does not support MediaType")
+func (c *ConfigV1) MediaType() string {
+	return ""
 }
 
-func (c *ConfigV1) Size() (int, error) {
-	return 0, fmt.Errorf("ConfigV1 does not support Size")
+func (c *ConfigV1) Size() int {
+	return 0
 }
 
 type PlatformV1 struct {
@@ -47,7 +45,8 @@ func (p *PlatformV1) Digest() digest.Digest {
 }
 
 func (p *PlatformV1) Features() []string {
-	return []string{}
+	var f []string
+	return f
 }
 
 func (p *PlatformV1) Manifest() (Manifest, error) {
@@ -59,7 +58,8 @@ func (p *PlatformV1) OS() string {
 }
 
 func (p *PlatformV1) OSFeatures() []string {
-	return []string{}
+	var f []string
+	return f
 }
 
 func (p *PlatformV1) OSVersion() string {
@@ -133,10 +133,10 @@ func (l *LayerV1) Digest() (string, error) {
 	return l.digest.String(), nil
 }
 
-func (l *LayerV1) MediaType() (string, error) {
-	return "", fmt.Errorf("LayerV1 does not support MediaType")
+func (l *LayerV1) MediaType() string {
+	return ""
 }
 
-func (l *LayerV1) Size() (int, error) {
-	return 0, fmt.Errorf("LayerV1 does not support Size")
+func (l *LayerV1) Size() int {
+	return 0
 }

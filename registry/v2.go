@@ -24,12 +24,12 @@ func (c *ConfigV2) History() ([]dockerImage.History, error) {
 	return c.history, nil
 }
 
-func (c *ConfigV2) MediaType() (string, error) {
-	return c.mediaType, nil
+func (c *ConfigV2) MediaType() string {
+	return c.mediaType
 }
 
-func (c *ConfigV2) Size() (int, error) {
-	return c.size, nil
+func (c *ConfigV2) Size() int {
+	return c.size
 }
 
 type LayerV2 struct {
@@ -40,12 +40,12 @@ func (l *LayerV2) Digest() (string, error) {
 	return l.rawLayer.Digest.String(), nil
 }
 
-func (l *LayerV2) MediaType() (string, error) {
-	return l.rawLayer.MediaType, nil
+func (l *LayerV2) MediaType() string {
+	return l.rawLayer.MediaType
 }
 
-func (l *LayerV2) Size() (int, error) {
-	return int(l.rawLayer.Size), nil
+func (l *LayerV2) Size() int {
+	return int(l.rawLayer.Size)
 }
 
 type ManifestV2 struct {
