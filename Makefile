@@ -24,11 +24,11 @@ dev_migrate:
 download_migrate:
 	curl -L -o migrate.tar.gz https://github.com/golang-migrate/migrate/releases/download/${MIGRATE_VERSION}/migrate.${MIGRATE_OS_ARCH}.tar.gz
 	tar -xvzf migrate.tar.gz
-	mv migrate.* migrate
+	mv migrate.${MIGRATE_OS_ARCH} migrate
 	rm migrate.tar.gz
 
 test:
 	go test -v ./...
 
 test_scrape:
-	go test -v ./scrape
+	RUN_SCRAPE_TESTS=1 go test -v ./scrape
