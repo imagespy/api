@@ -1,6 +1,5 @@
 DATABASE_ADDR ?= 127.0.0.1:33306
-DATABASE_PASS ?= root
-DATABASE_USER ?= root
+DATABASE_CREDENTIALS ?= root:root
 MIGRATE_OS_ARCH ?= darwin-amd64
 MIGRATE_VERSION = v4.0.2
 
@@ -19,7 +18,7 @@ dev_registry_rm:
 	cd ./dev && docker-compose stop registry && docker-compose rm -f registry
 
 dev_migrate:
-	./migrate -source file://./store/gorm/migrations -database "mysql://${DATABASE_USER}:${DATABASE_PASS}@tcp(${DATABASE_ADDR})/imagespy?charset=utf8&parseTime=True&loc=UTC" up
+	./migrate -source file://./store/gorm/migrations -database "mysql://${DATABASE_CREDENTIALS}@tcp(${DATABASE_ADDR})/imagespy?charset=utf8&parseTime=True&loc=UTC" up
 
 download_migrate:
 	curl -L -o migrate.tar.gz https://github.com/golang-migrate/migrate/releases/download/${MIGRATE_VERSION}/migrate.${MIGRATE_OS_ARCH}.tar.gz

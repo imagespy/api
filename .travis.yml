@@ -12,5 +12,5 @@ before_install:
 script:
   - make test
   - make MIGRATE_OS_ARCH=linux-amd64 download_migrate
-  - make DATABASE_PASS='' dev_migrate
-  - make DATABASE_PASS='' test_scrape
+  - make DATABASE_CREDENTIALS='root' dev_migrate
+  - make DATABASE_CREDENTIALS='root' test_scrape
