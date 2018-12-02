@@ -24,7 +24,7 @@ var serverCmd = &cobra.Command{
 		mustInitLogging(serverLogLevel)
 		s, err := gorm.New(serverDBConnection)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("unable to connect to database: %s", err)
 		}
 
 		defer s.Close()

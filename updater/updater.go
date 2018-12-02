@@ -56,9 +56,10 @@ func (s *groupingUpdater) Run() error {
 
 func (s *groupingUpdater) processRepository(images []string) {
 	for _, img := range images {
+		log.Debugf("scraping latest image for %s", img)
 		err := s.scraper.ScrapeLatestImageByName(img)
 		if err != nil {
-			log.Errorf("simpleUpdater.Run - unable to scrape latest image: %s", err)
+			log.Errorf("unable to scrape latest image: %s", err)
 		}
 	}
 }
