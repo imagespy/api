@@ -10,17 +10,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Work struct {
-	Address    string
-	Repository string
-	Tags       []string
-}
-
 type Scraper interface {
 	ScrapeImage(i registry.Image) error
-	ScrapeImagesByName(names []string)
+	ScrapeImageByName(n string) error
 	ScrapeLatestImage(i registry.Image) error
-	ScrapeLatestImagesByName(names []string)
+	ScrapeLatestImageByName(n string) error
 }
 
 func NewScraper(reg registry.Registry, s store.Store) Scraper {
@@ -100,19 +94,18 @@ func (a *async) ScrapeImage(i registry.Image) error {
 	return fmt.Errorf("ScrapeImage: reading image with digest %s failed: %s", digest, err)
 }
 
-func (a *async) ScrapeImagesByName(names []string) {
-	for _, n := range names {
-		regImage, err := a.reg.Image(n)
-		if err != nil {
-			log.Errorf("ScrapeImagesByName - create image from name '%s': %s", n, err)
-			continue
-		}
-
-		err = a.ScrapeImage(regImage)
-		if err != nil {
-			log.Errorf("ScrapeImagesByName - scrape image '%s': %s", n, err)
-		}
+func (a *async) ScrapeImageByName(n string) error {
+	regImage, err := a.reg.Image(n)
+	if err != nil {
+		return err
 	}
+
+	err = a.ScrapeImage(regImage)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *async) ScrapeLatestImage(i registry.Image) error {
@@ -228,19 +221,18 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 	return nil
 }
 
-func (a *async) ScrapeLatestImagesByName(names []string) {
-	for _, n := range names {
-		regImage, err := a.reg.Image(n)
-		if err != nil {
-			log.Warnf("ScrapeLatestImagesByName - create image from name '%s': %s", n, err)
-			continue
-		}
-
-		err = a.ScrapeLatestImage(regImage)
-		if err != nil {
-			log.Warnf("ScrapeLatestImagesByName - scrape image '%s': %s", n, err)
-		}
+func (a *async) ScrapeLatestImageByName(n string) error {
+	regImage, err := a.reg.Image(n)
+	if err != nil {
+		return err
 	}
+
+	err = a.ScrapeLatestImage(regImage)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image) (*store.Image, []*store.Layer, error) {

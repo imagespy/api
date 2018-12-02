@@ -59,3 +59,7 @@
 [[constraint]]
   name = "github.com/gorilla/mux"
   version = "1.6.2"
+
+[[constraint]]
+  name = "github.com/Jeffail/tunny"
+  version = "0.1.2"

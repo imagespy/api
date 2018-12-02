@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:aa855bda8630186a6a2f33ac0142fd8c1644622af2e164bc3d8bbb69978b6467"
+  name = "github.com/Jeffail/tunny"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "4921fff29480bad359ad2fb3271fb461c8ffe1fc"
+  version = "0.1.2"
+
+[[projects]]
   digest = "1:f9ae348e1f793dcf9ed930ed47136a67343dbd6809c5c91391322267f4476892"
   name = "github.com/Microsoft/go-winio"
   packages = ["."]
@@ -473,6 +481,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/Jeffail/tunny",
     "github.com/docker/distribution",
     "github.com/docker/distribution/manifest/manifestlist",
     "github.com/docker/distribution/manifest/schema1",

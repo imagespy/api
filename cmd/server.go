@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
 	"github.com/imagespy/api/store/gorm"
 	"github.com/imagespy/api/web"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 

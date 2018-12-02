@@ -70,8 +70,8 @@ func (rh *registryHandler) registryEvent(w http.ResponseWriter, r *http.Request)
 					rh.eventDedupMutex.Unlock()
 				}()
 
-				rh.scraper.ScrapeImagesByName([]string{imageName})
-				rh.scraper.ScrapeLatestImagesByName([]string{imageName})
+				rh.scraper.ScrapeImageByName(imageName)
+				rh.scraper.ScrapeLatestImageByName(imageName)
 			}()
 		}
 	}

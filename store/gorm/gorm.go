@@ -515,6 +515,15 @@ func (g *gormTag) List(o store.TagListOptions) ([]*store.Tag, error) {
 		whereValues = append(whereValues, o.ImageID)
 	}
 
+	if o.IsLatest != nil {
+		whereQuery = append(whereQuery, "imagespy_tag.is_latest = ?")
+		if *o.IsLatest {
+			whereValues = append(whereValues, 1)
+		} else {
+			whereValues = append(whereValues, 0)
+		}
+	}
+
 	result := g.db.Where(strings.Join(whereQuery, " AND "), whereValues...).Find(&tags)
 	if result.Error != nil {
 		return nil, result.Error
