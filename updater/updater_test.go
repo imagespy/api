@@ -55,7 +55,7 @@ func TestSimpleUpdater_Run(t *testing.T) {
 		ScrapeLatestImageByName(gomock.Eq("second:v3")).
 		Return(nil)
 
-	s := &simpleUpdater{
+	s := &groupingUpdater{
 		scraper: scraper,
 		store:   store,
 	}

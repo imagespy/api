@@ -15,14 +15,14 @@ type Updater interface {
 	Run() error
 }
 
-type simpleUpdater struct {
+type groupingUpdater struct {
 	scraper      scrape.Scraper
 	store        store.Store
 	dispatchFunc func(groups map[string][]string)
 	workerCount  int
 }
 
-func (s *simpleUpdater) Run() error {
+func (s *groupingUpdater) Run() error {
 	b := true
 	tags, err := s.store.Tags().List(store.TagListOptions{
 		IsLatest: &b,
@@ -54,7 +54,7 @@ func (s *simpleUpdater) Run() error {
 	return nil
 }
 
-func (s *simpleUpdater) processRepository(images []string) {
+func (s *groupingUpdater) processRepository(images []string) {
 	for _, img := range images {
 		err := s.scraper.ScrapeLatestImageByName(img)
 		if err != nil {
@@ -63,8 +63,8 @@ func (s *simpleUpdater) processRepository(images []string) {
 	}
 }
 
-func NewSimpleUpdater(scraper scrape.Scraper, s store.Store, wc int) Updater {
-	su := &simpleUpdater{
+func NewGroupingUpdater(scraper scrape.Scraper, s store.Store, wc int) Updater {
+	su := &groupingUpdater{
 		scraper:     scraper,
 		store:       s,
 		workerCount: wc,
