@@ -5,7 +5,11 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/imagespy/api/versionparser"
 
@@ -13,6 +17,25 @@ import (
 	"github.com/imagespy/api/scrape"
 	"github.com/imagespy/api/store"
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	promReqCounter = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "requests_total",
+			Help: "A counter for requests to the wrapped handler.",
+		},
+		[]string{"code", "method"},
+	)
+
+	promReqDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "request_duration_seconds",
+			Help:    "A histogram of latencies for requests.",
+			Buckets: []float64{.25, .5, 1, 2.5, 5, 10},
+		},
+		[]string{"handler", "method"},
+	)
 )
 
 type imageSerialize struct {
@@ -254,10 +277,11 @@ func Init(scraper scrape.Scraper, store store.Store) http.Handler {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}/layers`, h.ImageLayers).Methods("GET")
-	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}`, h.Images).Methods("GET")
-	r.HandleFunc("/v2/layers/{digest}", lh.layers).Methods("GET")
-	r.HandleFunc("/registry/event", rh.registryEvent).Methods("POST")
+	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}/layers`, wrapPrometheus("/v2/images/{name}/layers", h.ImageLayers)).Methods("GET")
+	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}`, wrapPrometheus("/v2/images/{name}", h.Images)).Methods("GET")
+	r.HandleFunc("/v2/layers/{digest}", wrapPrometheus("/v2/layers/{digest}", lh.layers)).Methods("GET")
+	r.HandleFunc("/registry/event", wrapPrometheus("/registry/event", rh.registryEvent)).Methods("POST")
+	r.Handle("/metrics", promhttp.Handler()).Methods("GET")
 	return r
 }
 
@@ -268,4 +292,9 @@ func getQueryParam(r *http.Request, key, defaultVal string) string {
 	}
 
 	return v
+}
+
+func wrapPrometheus(name string, h http.HandlerFunc) http.HandlerFunc {
+	return promhttp.InstrumentHandlerDuration(promReqDuration.MustCurryWith(prometheus.Labels{"handler": name}),
+		promhttp.InstrumentHandlerCounter(promReqCounter, h))
 }
