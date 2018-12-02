@@ -19,7 +19,7 @@ var (
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "Start the server",
+	Short: "Serves the HTTP API",
 	Run: func(cmd *cobra.Command, args []string) {
 		mustInitLogging(serverLogLevel)
 		s, err := gorm.New(serverDBConnection)

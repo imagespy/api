@@ -26,6 +26,10 @@ download_migrate:
 	mv migrate.${MIGRATE_OS_ARCH} migrate
 	rm migrate.tar.gz
 
+generate_mocks:
+	mockgen -source=./scrape/scraper.go -destination=./scrape/mock.go -package scrape
+	mockgen -source=./store/store.go -destination=./store/mock/mock.go -package mock
+
 test:
 	go test -v ./...
 

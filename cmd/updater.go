@@ -17,7 +17,7 @@ var (
 
 var updaterCmd = &cobra.Command{
 	Use:   "updater",
-	Short: "Start the updater",
+	Short: "Updates the latest version of images",
 	Run: func(cmd *cobra.Command, args []string) {
 		mustInitLogging(updaterLogLevel)
 		s, err := gorm.New(updaterDBConnection)

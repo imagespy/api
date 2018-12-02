@@ -180,6 +180,14 @@
   version = "v3.5.4"
 
 [[projects]]
+  digest = "1:bc38c7c481812e178d85160472e231c5e1c9a7f5845d67e23ee4e706933c10d8"
+  name = "github.com/golang/mock"
+  packages = ["gomock"]
+  pruneopts = "UT"
+  revision = "c34cdb4725f4c3844d095133c6e40e448b86589b"
+  version = "v1.1.1"
+
+[[projects]]
   digest = "1:c79fb010be38a59d657c48c6ba1d003a8aa651fa56b579d959d74573b7dff8e1"
   name = "github.com/gorilla/context"
   packages = ["."]
@@ -425,9 +433,10 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8c520a50d95df847d7732e971616b443afb0d95c3be465e3952bfde515d4e47a"
+  digest = "1:72c614df418a5c5c10c9f162fa703d948334f13747117baffc509fe770603063"
   name = "golang.org/x/net"
   packages = [
+    "context",
     "internal/socks",
     "proxy",
   ]
@@ -495,6 +504,7 @@
     "github.com/golang-migrate/migrate",
     "github.com/golang-migrate/migrate/database/mysql",
     "github.com/golang-migrate/migrate/source/file",
+    "github.com/golang/mock/gomock",
     "github.com/gorilla/mux",
     "github.com/jinzhu/gorm",
     "github.com/opencontainers/go-digest",

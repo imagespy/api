@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/Jeffail/tunny"
 	"github.com/imagespy/api/scrape"
 
-	"github.com/Jeffail/tunny"
 	"github.com/imagespy/api/store"
 	log "github.com/sirupsen/logrus"
 )
@@ -16,9 +16,10 @@ type Updater interface {
 }
 
 type simpleUpdater struct {
-	scraper     scrape.Scraper
-	store       store.Store
-	workerCount int
+	scraper      scrape.Scraper
+	store        store.Store
+	dispatchFunc func(groups map[string][]string)
+	workerCount  int
 }
 
 func (s *simpleUpdater) Run() error {
@@ -43,44 +44,63 @@ func (s *simpleUpdater) Run() error {
 		imgName := image.Name + ":" + tag.Name
 		group, exists := grouped[image.Name]
 		if exists {
-			group = append(group, imgName)
+			grouped[image.Name] = append(group, imgName)
 		} else {
 			grouped[image.Name] = []string{imgName}
 		}
 	}
 
-	pool := tunny.NewFunc(s.workerCount, func(payload interface{}) interface{} {
+	s.dispatchFunc(grouped)
+	return nil
+}
+
+func (s *simpleUpdater) processRepository(images []string) {
+	for _, img := range images {
+		err := s.scraper.ScrapeLatestImageByName(img)
+		if err != nil {
+			log.Errorf("simpleUpdater.Run - unable to scrape latest image: %s", err)
+		}
+	}
+}
+
+func NewSimpleUpdater(scraper scrape.Scraper, s store.Store, wc int) Updater {
+	su := &simpleUpdater{
+		scraper:     scraper,
+		store:       s,
+		workerCount: wc,
+	}
+
+	pool := tunny.NewFunc(wc, func(payload interface{}) interface{} {
 		images, ok := payload.([]string)
 		if !ok {
-			log.Error("unable to cast payload to []registry.Image")
+			log.Error("unable to cast payload to []string")
 			return nil
 		}
 
-		for _, img := range images {
-			err := s.scraper.ScrapeLatestImageByName(img)
-			log.Errorf("simpleUpdater.Run - unable to scrape latest image: %s", err)
-		}
-
+		su.processRepository(images)
 		return nil
 	})
+
+	ap := asyncProcessor{pool: pool}
+	su.dispatchFunc = ap.dispatch
+
+	return su
+}
+
+type asyncProcessor struct {
+	pool *tunny.Pool
+}
+
+func (ap *asyncProcessor) dispatch(groups map[string][]string) {
 	wg := &sync.WaitGroup{}
-	wg.Add(len(grouped))
-	for repo, group := range grouped {
-		log.Debugf("Dispatching repository %s", repo)
+	wg.Add(len(groups))
+	for _, group := range groups {
 		payload := group
 		go func() {
-			pool.Process(payload)
-			defer wg.Done()
+			ap.pool.Process(payload)
+			wg.Done()
 		}()
 	}
 
 	wg.Wait()
-	return nil
-}
-
-func NewSimpleUpdater(scraper scrape.Scraper, s store.Store, wc int) Updater {
-	return &simpleUpdater{
-		store:       s,
-		workerCount: wc,
-	}
 }
