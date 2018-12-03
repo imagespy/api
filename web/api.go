@@ -57,7 +57,7 @@ type imageHandler struct {
 	Store      store.Store
 }
 
-func (h *imageHandler) CreateImage(w http.ResponseWriter, r *http.Request) {
+func (h *imageHandler) createImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	imageID := vars["name"]
 	address, path, tagInput, _, err := registry.ParseImage(imageID)
@@ -107,7 +107,7 @@ func (h *imageHandler) CreateImage(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *imageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
+func (h *imageHandler) getImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	imageID := vars["name"]
 	address, path, tagInput, _, err := registry.ParseImage(imageID)
@@ -171,7 +171,7 @@ func (h *imageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func (h *imageHandler) GetImageLayers(w http.ResponseWriter, r *http.Request) {
+func (h *imageHandler) getImageLayers(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	imageID := vars["name"]
 	address, path, tagInput, _, err := registry.ParseImage(imageID)
@@ -300,9 +300,9 @@ func Init(scraper scrape.Scraper, store store.Store) http.Handler {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}`, wrapPrometheus("/v2/images/{name}", h.CreateImage)).Methods("POST")
-	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}`, wrapPrometheus("/v2/images/{name}", h.GetImage)).Methods("GET")
-	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}/layers`, wrapPrometheus("/v2/images/{name}/layers", h.GetImageLayers)).Methods("GET")
+	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}`, wrapPrometheus("/v2/images/{name}", h.createImage)).Methods("POST")
+	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}`, wrapPrometheus("/v2/images/{name}", h.getImage)).Methods("GET")
+	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}/layers`, wrapPrometheus("/v2/images/{name}/layers", h.getImageLayers)).Methods("GET")
 	r.HandleFunc("/v2/layers/{digest}", wrapPrometheus("/v2/layers/{digest}", lh.layers)).Methods("GET")
 	r.HandleFunc("/registry/event", wrapPrometheus("/registry/event", rh.registryEvent)).Methods("POST")
 	r.Handle("/metrics", promhttp.Handler()).Methods("GET")
