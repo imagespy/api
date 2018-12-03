@@ -57,13 +57,63 @@ type imageHandler struct {
 	Store      store.Store
 }
 
-func (h *imageHandler) Images(w http.ResponseWriter, r *http.Request) {
+func (h *imageHandler) CreateImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	imageID := vars["name"]
 	address, path, tagInput, _, err := registry.ParseImage(imageID)
 	if err != nil {
-		log.Error(err)
+		log.Errorf("parsing image name: %s", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	_, err = h.Store.Images().Get(store.ImageGetOptions{
+		Name:    address + "/" + path,
+		TagName: tagInput,
+	})
+	if err == nil {
+		log.Warn("image to create already exists")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err != store.ErrDoesNotExist {
+		log.Errorf("reading initial image: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	regImage, err := registry.NewImage(imageID, registry.Opts{})
+	if err != nil {
+		log.Errorf("instantiating registry image: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = h.scraper.ScrapeImage(regImage)
+	if err != nil {
+		log.Errorf("scraping registry image: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = h.scraper.ScrapeLatestImage(regImage)
+	if err != nil {
+		log.Errorf("scraping latest registry image: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (h *imageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	imageID := vars["name"]
+	address, path, tagInput, _, err := registry.ParseImage(imageID)
+	if err != nil {
+		log.Errorf("parsing image name: %s", err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -72,39 +122,12 @@ func (h *imageHandler) Images(w http.ResponseWriter, r *http.Request) {
 		TagName: tagInput,
 	})
 	if err != nil {
-		if err != store.ErrDoesNotExist {
-			log.Errorf("reading initial image: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
+		if err == store.ErrDoesNotExist {
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
-		regImage, err := registry.NewImage(imageID, registry.Opts{})
-		if err != nil {
-			log.Errorf("instantiating registry image: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		err = h.scraper.ScrapeImage(regImage)
-		if err != nil {
-			log.Errorf("scraping registry image: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		err = h.scraper.ScrapeLatestImage(regImage)
-		if err != nil {
-			log.Errorf("scraping latest registry image: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	}
-
-	image, err = h.Store.Images().Get(store.ImageGetOptions{
-		Name:    address + "/" + path,
-		TagName: tagInput,
-	})
-	if err != nil {
-		log.Errorf("reading image again: %s", err)
+		log.Errorf("reading image: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -148,7 +171,7 @@ func (h *imageHandler) Images(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func (h *imageHandler) ImageLayers(w http.ResponseWriter, r *http.Request) {
+func (h *imageHandler) GetImageLayers(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	imageID := vars["name"]
 	address, path, tagInput, _, err := registry.ParseImage(imageID)
@@ -277,8 +300,9 @@ func Init(scraper scrape.Scraper, store store.Store) http.Handler {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}/layers`, wrapPrometheus("/v2/images/{name}/layers", h.ImageLayers)).Methods("GET")
-	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}`, wrapPrometheus("/v2/images/{name}", h.Images)).Methods("GET")
+	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}`, wrapPrometheus("/v2/images/{name}", h.CreateImage)).Methods("POST")
+	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}`, wrapPrometheus("/v2/images/{name}", h.GetImage)).Methods("GET")
+	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9/.-:_]+}/layers`, wrapPrometheus("/v2/images/{name}/layers", h.GetImageLayers)).Methods("GET")
 	r.HandleFunc("/v2/layers/{digest}", wrapPrometheus("/v2/layers/{digest}", lh.layers)).Methods("GET")
 	r.HandleFunc("/registry/event", wrapPrometheus("/registry/event", rh.registryEvent)).Methods("POST")
 	r.Handle("/metrics", promhttp.Handler()).Methods("GET")
