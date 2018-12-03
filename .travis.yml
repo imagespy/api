@@ -11,6 +11,4 @@ before_install:
 
 script:
   - make test
-  - make MIGRATE_OS_ARCH=linux-amd64 download_migrate
-  - make dev_migrate
   - make test_scrape
