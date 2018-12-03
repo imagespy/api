@@ -4,10 +4,33 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+
 	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/store"
 	"github.com/imagespy/api/versionparser"
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	promScrapeDuration = promauto.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:      "scrape_duration_seconds",
+			Namespace: "imagespy",
+			Help:      "A histogram of the time it took to scrape an image.",
+			Buckets:   []float64{.5, 1, 5, 10},
+		},
+	)
+
+	promScrapeLatestDuration = promauto.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:      "scrape_latest_duration_seconds",
+			Namespace: "imagespy",
+			Help:      "A histogram of the time it took to scrape the latest version of an image.",
+			Buckets:   []float64{.5, 1, 5, 10},
+		},
+	)
 )
 
 type Scraper interface {
@@ -32,6 +55,8 @@ type async struct {
 }
 
 func (a *async) ScrapeImage(i registry.Image) error {
+	start := time.Now()
+	defer func() { promScrapeDuration.Observe(time.Since(start).Seconds()) }()
 	digest, err := i.Digest()
 	if err != nil {
 		return fmt.Errorf("ScrapeImage: retrieving digest failed: %s", err)
@@ -109,6 +134,8 @@ func (a *async) ScrapeImageByName(n string) error {
 }
 
 func (a *async) ScrapeLatestImage(i registry.Image) error {
+	start := time.Now()
+	defer func() { promScrapeLatestDuration.Observe(time.Since(start).Seconds()) }()
 	regImgTag, err := i.Tag()
 	if err != nil {
 		return err
