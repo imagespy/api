@@ -10,9 +10,13 @@ import (
 )
 
 var (
-	updaterDBConnection string
-	updaterLogLevel     string
-	updaterWorkerCount  int
+	updaterDBConnection     string
+	updaterLogLevel         string
+	updaterRegistryAddress  string
+	updaterRegistryInsecure bool
+	updaterRegistryPassword string
+	updaterRegistryUsername string
+	updaterWorkerCount      int
 )
 
 var updaterCmd = &cobra.Command{
@@ -27,7 +31,14 @@ var updaterCmd = &cobra.Command{
 
 		defer s.Close()
 
-		reg, err := registry.NewRegistry("", registry.Opts{})
+		reg, err := registry.NewRegistry(
+			updaterRegistryAddress,
+			registry.Opts{
+				Insecure: updaterRegistryInsecure,
+				Password: updaterRegistryPassword,
+				Username: updaterRegistryUsername,
+			},
+		)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -44,6 +55,10 @@ var updaterCmd = &cobra.Command{
 func init() {
 	updaterCmd.Flags().StringVar(&updaterDBConnection, "db.connection", "", "connection string to connect to the database")
 	updaterCmd.Flags().StringVar(&updaterLogLevel, "log.level", "warn", "set the log level")
+	updaterCmd.Flags().StringVar(&updaterRegistryAddress, "registry.address", "docker.io", "the address of the docker registry")
+	updaterCmd.Flags().BoolVar(&updaterRegistryInsecure, "registry.insecure", false, "disable certificate validation")
+	updaterCmd.Flags().StringVar(&updaterRegistryPassword, "registry.password", "", "the password to authenticate against the docker registry")
+	updaterCmd.Flags().StringVar(&updaterRegistryUsername, "registry.username", "", "the username to authenticate against the docker registry")
 	updaterCmd.Flags().IntVar(&updaterWorkerCount, "workers", 1, "number of workers that process updates")
 	rootCmd.AddCommand(updaterCmd)
 }

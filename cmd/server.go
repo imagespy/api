@@ -12,9 +12,13 @@ import (
 )
 
 var (
-	serverDBConnection string
-	serverHTTPAddress  string
-	serverLogLevel     string
+	serverDBConnection     string
+	serverHTTPAddress      string
+	serverLogLevel         string
+	serverRegistryAddress  string
+	serverRegistryInsecure bool
+	serverRegistryPassword string
+	serverRegistryUsername string
 )
 
 var serverCmd = &cobra.Command{
@@ -29,7 +33,14 @@ var serverCmd = &cobra.Command{
 
 		defer s.Close()
 
-		reg, err := registry.NewRegistry("", registry.Opts{})
+		reg, err := registry.NewRegistry(
+			serverRegistryAddress,
+			registry.Opts{
+				Insecure: serverRegistryInsecure,
+				Password: serverRegistryPassword,
+				Username: serverRegistryUsername,
+			},
+		)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -41,7 +52,11 @@ var serverCmd = &cobra.Command{
 
 func init() {
 	serverCmd.Flags().StringVar(&serverDBConnection, "db.connection", "", "connection string to connect to the database")
-	serverCmd.Flags().StringVar(&serverHTTPAddress, "http.address", ":3001", "ip/port combination to bind to")
+	serverCmd.Flags().StringVar(&serverHTTPAddress, "http.address", ":3001", "ip:port combination to bind to")
 	serverCmd.Flags().StringVar(&serverLogLevel, "log.level", "warn", "set the log level")
+	serverCmd.Flags().StringVar(&serverRegistryAddress, "registry.address", "docker.io", "the address of the docker registry")
+	serverCmd.Flags().BoolVar(&serverRegistryInsecure, "registry.insecure", false, "disable certificate validation")
+	serverCmd.Flags().StringVar(&serverRegistryPassword, "registry.password", "", "the password to authenticate against the docker registry")
+	serverCmd.Flags().StringVar(&serverRegistryUsername, "registry.username", "", "the username to authenticate against the docker registry")
 	rootCmd.AddCommand(serverCmd)
 }

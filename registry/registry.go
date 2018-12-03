@@ -16,6 +16,8 @@ type Registry interface {
 
 type Opts struct {
 	Insecure bool
+	Password string
+	Username string
 }
 
 type registry struct {
@@ -27,7 +29,11 @@ func newRegClient(address string, o Opts) (*reg.Registry, error) {
 	if address == "" || address == "docker.io" {
 		address = "index.docker.io"
 	}
-	auth := types.AuthConfig{ServerAddress: address}
+	auth := types.AuthConfig{
+		Password:      o.Password,
+		ServerAddress: address,
+		Username:      o.Username,
+	}
 
 	regClient, err := reg.New(auth, reg.Opt{Insecure: o.Insecure, SkipPing: true})
 	if err != nil {

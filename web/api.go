@@ -83,21 +83,14 @@ func (h *imageHandler) createImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	regImage, err := registry.NewImage(imageID, registry.Opts{})
-	if err != nil {
-		log.Errorf("instantiating registry image: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	err = h.scraper.ScrapeImage(regImage)
+	err = h.scraper.ScrapeImageByName(imageID)
 	if err != nil {
 		log.Errorf("scraping registry image: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = h.scraper.ScrapeLatestImage(regImage)
+	err = h.scraper.ScrapeLatestImageByName(imageID)
 	if err != nil {
 		log.Errorf("scraping latest registry image: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
