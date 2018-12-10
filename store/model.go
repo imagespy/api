@@ -1,10 +1,16 @@
 package store
 
-import "time"
+import (
+	"time"
+)
+
+type Model struct {
+	ID int
+}
 
 type Feature struct {
+	Model
 	CreatedAt time.Time
-	ID        int
 	Name      string
 }
 
@@ -13,56 +19,42 @@ func (Feature) TableName() string {
 }
 
 type Image struct {
+	Model
 	CreatedAt     time.Time
 	Digest        string
-	ID            int
 	Name          string
-	Platforms     []*Platform
 	SchemaVersion int
 	ScrapedAt     time.Time
-	Tags          []*Tag
 }
 
 func (Image) TableName() string {
 	return "imagespy_image"
 }
 
-func (i *Image) HasTag(t *Tag) bool {
-	for _, tag := range i.Tags {
-		if tag.Name == t.Name {
-			return true
-		}
-	}
-
-	return false
-}
-
 type Layer struct {
-	Digest       string
-	ID           int
-	SourceImages []*Image `gorm:"many2many:imagespy_layer_source_images;"`
+	Model
+	Digest         string
+	SourceImageIDs []int `gorm:"-"`
 }
 
 func (Layer) TableName() string {
 	return "imagespy_layer"
 }
 
-type LayerOfPlatform struct {
-	ID         int
-	Layer      *Layer
+type LayerPosition struct {
+	Model
 	LayerID    int
-	Platform   *Platform
 	PlatformID int
 	Position   int
 }
 
-func (LayerOfPlatform) TableName() string {
+func (LayerPosition) TableName() string {
 	return "imagespy_layerofplatform"
 }
 
 type OSFeature struct {
+	Model
 	CreatedAt time.Time
-	ID        int
 	Name      string
 }
 
@@ -71,14 +63,12 @@ func (OSFeature) TableName() string {
 }
 
 type Platform struct {
+	Model
 	Architecture   string
 	Created        time.Time
 	CreatedAt      time.Time
 	Features       []*Feature `gorm:"many2many:imagespy_platform_features;"`
-	Image          *Image
 	ImageID        int
-	ID             int
-	Layers         []*Layer
 	ManifestDigest string
 	OS             string
 	OSFeatures     []*OSFeature `gorm:"many2many:imagespy_platform_os_features;"`
@@ -91,9 +81,9 @@ func (Platform) TableName() string {
 }
 
 type Tag struct {
+	Model
 	Distinction string
 	ImageID     int
-	ID          int
 	IsLatest    bool
 	IsTagged    bool
 	Name        string

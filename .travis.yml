@@ -1,3 +1,14 @@
 language: go
 go:
   - "1.11"
+
+services:
+  - docker
+
+before_install:
+  - make dev_database
+  - sleep 30
+
+script:
+  - make test
+  - make test_scrape
