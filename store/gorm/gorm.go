@@ -42,8 +42,33 @@ func (g *gorm) Tags() store.TagStore {
 	return &gormTag{db: g.db}
 }
 
+func (g *gorm) Transaction() (store.StoreTransaction, error) {
+	tx := g.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	gt := &gormTransaction{}
+	gt.db = tx
+	return gt, nil
+}
+
 func (g *gorm) Close() error {
 	return g.db.Close()
+}
+
+type gormTransaction struct {
+	gorm
+}
+
+func (gt *gormTransaction) Commit() error {
+	result := gt.db.Commit()
+	return result.Error
+}
+
+func (gt *gormTransaction) Rollback() error {
+	result := gt.db.Rollback()
+	return result.Error
 }
 
 type gormImage struct {
@@ -55,21 +80,9 @@ func (gi *gormImage) Create(i *store.Image) error {
 		return fmt.Errorf("Image already created")
 	}
 
-	tx := gi.db.Begin()
-	if tx.Error != nil {
-		return tx.Error
-	}
-
-	result := tx.FirstOrCreate(i, store.Image{Digest: i.Digest, Name: i.Name, SchemaVersion: i.SchemaVersion})
+	result := gi.db.FirstOrCreate(i, store.Image{Digest: i.Digest, Name: i.Name, SchemaVersion: i.SchemaVersion})
 	if result.Error != nil {
-		tx.Rollback()
 		return result.Error
-	}
-
-	tx.Commit()
-	if tx.Error != nil {
-		tx.Rollback()
-		return tx.Error
 	}
 
 	return nil
@@ -161,21 +174,9 @@ func (gi *gormImage) List(o store.ImageListOptions) ([]*store.Image, error) {
 }
 
 func (gi *gormImage) Update(i *store.Image) error {
-	tx := gi.db.Begin()
-	if tx.Error != nil {
-		return tx.Error
-	}
-
-	result := tx.Save(i)
+	result := gi.db.Save(i)
 	if result.Error != nil {
-		tx.Rollback()
 		return result.Error
-	}
-
-	tx.Commit()
-	if tx.Error != nil {
-		tx.Rollback()
-		return tx.Error
 	}
 
 	return nil
@@ -186,14 +187,8 @@ type gormLayer struct {
 }
 
 func (g *gormLayer) Create(l *store.Layer) error {
-	tx := g.db.Begin()
-	if tx.Error != nil {
-		return tx.Error
-	}
-
-	result := tx.FirstOrCreate(l, store.Layer{Digest: l.Digest})
+	result := g.db.FirstOrCreate(l, store.Layer{Digest: l.Digest})
 	if result.Error != nil {
-		tx.Rollback()
 		return result.Error
 	}
 
@@ -203,17 +198,10 @@ func (g *gormLayer) Create(l *store.Layer) error {
 			LayerID: l.ID,
 		}
 
-		result := tx.FirstOrCreate(siid, sourceImageOfLayer{ImageID: imageID, LayerID: l.ID})
+		result := g.db.FirstOrCreate(siid, sourceImageOfLayer{ImageID: imageID, LayerID: l.ID})
 		if result.Error != nil {
-			tx.Rollback()
 			return result.Error
 		}
-	}
-
-	result = tx.Commit()
-	if result.Error != nil {
-		tx.Rollback()
-		return result.Error
 	}
 
 	return nil
@@ -297,29 +285,16 @@ func (g *gormLayer) List(o store.LayerListOptions) ([]*store.Layer, error) {
 }
 
 func (g *gormLayer) Update(l *store.Layer) error {
-	tx := g.db.Begin()
-	if tx.Error != nil {
-		return tx.Error
-	}
-
-	result := tx.Exec("delete from imagespy_layer_source_images where layer_id = ?", l.ID)
+	result := g.db.Exec("delete from imagespy_layer_source_images where layer_id = ?", l.ID)
 	if result.Error != nil {
-		tx.Rollback()
 		return result.Error
 	}
 
 	for _, imageID := range l.SourceImageIDs {
-		result := tx.Exec("insert into imagespy_layer_source_images (image_id, layer_id) VALUES (?, ?)", imageID, l.ID)
+		result := g.db.Exec("insert into imagespy_layer_source_images (image_id, layer_id) VALUES (?, ?)", imageID, l.ID)
 		if result.Error != nil {
-			tx.Rollback()
 			return result.Error
 		}
-	}
-
-	result = tx.Commit()
-	if result.Error != nil {
-		tx.Rollback()
-		return result.Error
 	}
 
 	return nil
@@ -533,26 +508,15 @@ func (g *gormTag) List(o store.TagListOptions) ([]*store.Tag, error) {
 }
 
 func (g *gormTag) Update(t *store.Tag) error {
-	tx := g.db.Begin()
-	if tx.Error != nil {
-		return tx.Error
-	}
-
-	result := tx.Save(t)
+	result := g.db.Save(t)
 	if result.Error != nil {
 		return result.Error
-	}
-
-	tx.Commit()
-	if tx.Error != nil {
-		tx.Rollback()
-		return tx.Error
 	}
 
 	return nil
 }
 
-func New(connection string) (*gorm, error) {
+func New(connection string) (store.Store, error) {
 	db, err := gormlib.Open("mysql", connection)
 	if err != nil {
 		return nil, err

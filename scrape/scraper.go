@@ -263,13 +263,21 @@ func (a *async) ScrapeLatestImageByName(n string) error {
 }
 
 func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image) (*store.Image, []*store.Layer, error) {
+	tx, err := a.store.Transaction()
+	if err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
+
 	imageDigest, err := regImg.Digest()
 	if err != nil {
+		tx.Rollback()
 		return nil, nil, err
 	}
 
 	imageSV, err := regImg.SchemaVersion()
 	if err != nil {
+		tx.Rollback()
 		return nil, nil, err
 	}
 
@@ -280,13 +288,15 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 		SchemaVersion: imageSV,
 		ScrapedAt:     a.timeFunc(),
 	}
-	err = a.store.Images().Create(image)
+	err = tx.Images().Create(image)
 	if err != nil {
+		tx.Rollback()
 		return nil, nil, err
 	}
 
 	tagName, err := regImg.Tag()
 	if err != nil {
+		tx.Rollback()
 		return nil, nil, err
 	}
 
@@ -297,28 +307,32 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 		IsTagged:    true,
 		Name:        tagName,
 	}
-	err = a.store.Tags().Create(tag)
+	err = tx.Tags().Create(tag)
 	if err != nil {
+		tx.Rollback()
 		return nil, nil, err
 	}
 
 	regPlatforms, err := regImg.Platforms()
 	if err != nil {
+		tx.Rollback()
 		return nil, nil, err
 	}
 
 	layers := []*store.Layer{}
-	layerClient := a.store.Layers()
-	layerPositionClient := a.store.LayerPositions()
-	platformClient := a.store.Platforms()
+	layerClient := tx.Layers()
+	layerPositionClient := tx.LayerPositions()
+	platformClient := tx.Platforms()
 	for _, p := range regPlatforms {
 		regManifest, err := p.Manifest()
 		if err != nil {
+			tx.Rollback()
 			return nil, nil, err
 		}
 
 		regManifestConfig, err := regManifest.Config()
 		if err != nil {
+			tx.Rollback()
 			return nil, nil, err
 		}
 
@@ -350,12 +364,14 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 		err = platformClient.Create(platform)
 		if err != nil {
 			log.Errorf("unable to create platform %s for image %d: %s", platform.ManifestDigest, image.ID, err)
-			continue
+			tx.Rollback()
+			return nil, nil, err
 		}
 
 		for idx, l := range regManifest.Layers() {
 			layerDigest, err := l.Digest()
 			if err != nil {
+				tx.Rollback()
 				return nil, nil, err
 			}
 
@@ -363,18 +379,25 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 			err = layerClient.Create(layer)
 			if err != nil {
 				log.Errorf("unable to create layer %s for platform %s: %s", layer.Digest, platform.ManifestDigest, err)
-				break
+				tx.Rollback()
+				return nil, nil, err
 			}
 
 			layerPosition := &store.LayerPosition{LayerID: layer.ID, PlatformID: platform.ID, Position: idx}
 			err = layerPositionClient.Create(layerPosition)
 			if err != nil {
 				log.Errorf("unable to create layer position '%d' for layer '%s' for platform '%s': %s", idx, layer.Digest, platform.ManifestDigest, err)
-				break
+				tx.Rollback()
+				return nil, nil, err
 			}
 
 			layers = append(layers, layer)
 		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
 	}
 
 	return image, layers, nil

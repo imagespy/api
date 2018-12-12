@@ -90,7 +90,6 @@ func executeTest(t *testing.T, tc testcase, funcToTest string) {
 		if err != nil {
 			t.Fatalf("store unable to connect to database: %s", err)
 		}
-		defer s.Close()
 
 		for _, iid := range tc.imagesInDatabase {
 			err := s.Images().Create(iid)

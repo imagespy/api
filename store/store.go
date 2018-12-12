@@ -16,6 +16,13 @@ type Store interface {
 	LayerPositions() LayerPositionStore
 	Platforms() PlatformStore
 	Tags() TagStore
+	Transaction() (StoreTransaction, error)
+}
+
+type StoreTransaction interface {
+	Store
+	Commit() error
+	Rollback() error
 }
 
 // ImageStore allows creating, manipulating and reading images.
