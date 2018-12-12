@@ -2,6 +2,7 @@ package mock
 
 import (
 	"fmt"
+	"time"
 
 	dockerImage "github.com/docker/docker/image"
 	reg "github.com/genuinetools/reg/registry"
@@ -158,9 +159,14 @@ func (m *mockPlatform) Variant() string {
 	return ""
 }
 
-func NewPlatform(arch string, digest string, layers []string, manifestDigest string, os string) *mockPlatform {
+func NewPlatform(arch string, digest string, layers []string, manifestDigest string, os string, historyCreated time.Time) *mockPlatform {
 	manifest := &mockManifest{
-		config: &mockConfig{digest: manifestDigest},
+		config: &mockConfig{
+			digest: manifestDigest,
+			history: []dockerImage.History{
+				{Created: historyCreated},
+			},
+		},
 	}
 	for _, layer := range layers {
 		manifest.layers = append(manifest.layers, &mockLayer{digest: layer})

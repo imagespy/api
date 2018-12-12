@@ -199,7 +199,7 @@ func TestAsync_ScrapeImage(t *testing.T) {
 				"ABC",
 				"dev.local/unittest",
 				[]registry.Platform{
-					registryMock.NewPlatform("amd64", "xyz", []string{"l123", "l456"}, "qwz", "linux"),
+					registryMock.NewPlatform("amd64", "xyz", []string{"l123", "l456"}, "qwz", "linux", time.Date(2018, 10, 24, 1, 0, 0, 0, time.UTC)),
 				},
 				2,
 				"1",
@@ -225,7 +225,7 @@ func TestAsync_ScrapeImage(t *testing.T) {
 			expectedPlatforms: []*store.Platform{
 				{
 					Architecture:   "amd64",
-					Created:        time.Date(2018, 10, 26, 4, 0, 0, 0, time.UTC),
+					Created:        time.Date(2018, 10, 24, 1, 0, 0, 0, time.UTC),
 					CreatedAt:      time.Date(2018, 10, 26, 3, 0, 0, 0, time.UTC),
 					Features:       []*store.Feature{},
 					ImageID:        1,
@@ -417,7 +417,7 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 				"GHI",
 				"dev.local/unittest",
 				[]registry.Platform{
-					registryMock.NewPlatform("amd64", "opq", []string{"l1", "l2"}, "bbb", "linux"),
+					registryMock.NewPlatform("amd64", "opq", []string{"l1", "l2"}, "bbb", "linux", time.Date(2018, 10, 24, 1, 0, 0, 0, time.UTC)),
 				},
 				2,
 				"2",
@@ -466,7 +466,7 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 				"GHI",
 				"dev.local/source-image",
 				[]registry.Platform{
-					registryMock.NewPlatform("amd64", "opq", []string{"l1", "l2"}, "bbb", "linux"),
+					registryMock.NewPlatform("amd64", "opq", []string{"l1", "l2"}, "bbb", "linux", time.Date(2018, 10, 24, 1, 0, 0, 0, time.UTC)),
 				},
 				2,
 				"2",

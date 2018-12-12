@@ -352,10 +352,16 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 			return nil, nil, err
 		}
 
+		history, err := regManifestConfig.History()
+		if err != nil {
+			tx.Rollback()
+			return nil, nil, err
+		}
+
 		platform := &store.Platform{
 			Architecture:   p.Architecture(),
 			CreatedAt:      a.timeFunc(),
-			Created:        a.timeFunc(),
+			Created:        history[len(history)-1].Created,
 			ImageID:        image.ID,
 			ManifestDigest: regManifestConfig.Digest().String(),
 			OS:             p.OS(),
