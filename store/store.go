@@ -11,6 +11,7 @@ var (
 
 // Store represents the high-level API to access models.
 type Store interface {
+	Close() error
 	Images() ImageStore
 	Layers() LayerStore
 	LayerPositions() LayerPositionStore

@@ -33,6 +33,18 @@ func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 	return m.recorder
 }
 
+// Close mocks base method
+func (m *MockStore) Close() error {
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockStoreMockRecorder) Close() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStore)(nil).Close))
+}
+
 // Images mocks base method
 func (m *MockStore) Images() store.ImageStore {
 	ret := m.ctrl.Call(m, "Images")
@@ -91,6 +103,151 @@ func (m *MockStore) Tags() store.TagStore {
 // Tags indicates an expected call of Tags
 func (mr *MockStoreMockRecorder) Tags() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Tags", reflect.TypeOf((*MockStore)(nil).Tags))
+}
+
+// Transaction mocks base method
+func (m *MockStore) Transaction() (store.StoreTransaction, error) {
+	ret := m.ctrl.Call(m, "Transaction")
+	ret0, _ := ret[0].(store.StoreTransaction)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Transaction indicates an expected call of Transaction
+func (mr *MockStoreMockRecorder) Transaction() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Transaction", reflect.TypeOf((*MockStore)(nil).Transaction))
+}
+
+// MockStoreTransaction is a mock of StoreTransaction interface
+type MockStoreTransaction struct {
+	ctrl     *gomock.Controller
+	recorder *MockStoreTransactionMockRecorder
+}
+
+// MockStoreTransactionMockRecorder is the mock recorder for MockStoreTransaction
+type MockStoreTransactionMockRecorder struct {
+	mock *MockStoreTransaction
+}
+
+// NewMockStoreTransaction creates a new mock instance
+func NewMockStoreTransaction(ctrl *gomock.Controller) *MockStoreTransaction {
+	mock := &MockStoreTransaction{ctrl: ctrl}
+	mock.recorder = &MockStoreTransactionMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *MockStoreTransaction) EXPECT() *MockStoreTransactionMockRecorder {
+	return m.recorder
+}
+
+// Close mocks base method
+func (m *MockStoreTransaction) Close() error {
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockStoreTransactionMockRecorder) Close() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStoreTransaction)(nil).Close))
+}
+
+// Images mocks base method
+func (m *MockStoreTransaction) Images() store.ImageStore {
+	ret := m.ctrl.Call(m, "Images")
+	ret0, _ := ret[0].(store.ImageStore)
+	return ret0
+}
+
+// Images indicates an expected call of Images
+func (mr *MockStoreTransactionMockRecorder) Images() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Images", reflect.TypeOf((*MockStoreTransaction)(nil).Images))
+}
+
+// Layers mocks base method
+func (m *MockStoreTransaction) Layers() store.LayerStore {
+	ret := m.ctrl.Call(m, "Layers")
+	ret0, _ := ret[0].(store.LayerStore)
+	return ret0
+}
+
+// Layers indicates an expected call of Layers
+func (mr *MockStoreTransactionMockRecorder) Layers() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Layers", reflect.TypeOf((*MockStoreTransaction)(nil).Layers))
+}
+
+// LayerPositions mocks base method
+func (m *MockStoreTransaction) LayerPositions() store.LayerPositionStore {
+	ret := m.ctrl.Call(m, "LayerPositions")
+	ret0, _ := ret[0].(store.LayerPositionStore)
+	return ret0
+}
+
+// LayerPositions indicates an expected call of LayerPositions
+func (mr *MockStoreTransactionMockRecorder) LayerPositions() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerPositions", reflect.TypeOf((*MockStoreTransaction)(nil).LayerPositions))
+}
+
+// Platforms mocks base method
+func (m *MockStoreTransaction) Platforms() store.PlatformStore {
+	ret := m.ctrl.Call(m, "Platforms")
+	ret0, _ := ret[0].(store.PlatformStore)
+	return ret0
+}
+
+// Platforms indicates an expected call of Platforms
+func (mr *MockStoreTransactionMockRecorder) Platforms() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Platforms", reflect.TypeOf((*MockStoreTransaction)(nil).Platforms))
+}
+
+// Tags mocks base method
+func (m *MockStoreTransaction) Tags() store.TagStore {
+	ret := m.ctrl.Call(m, "Tags")
+	ret0, _ := ret[0].(store.TagStore)
+	return ret0
+}
+
+// Tags indicates an expected call of Tags
+func (mr *MockStoreTransactionMockRecorder) Tags() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Tags", reflect.TypeOf((*MockStoreTransaction)(nil).Tags))
+}
+
+// Transaction mocks base method
+func (m *MockStoreTransaction) Transaction() (store.StoreTransaction, error) {
+	ret := m.ctrl.Call(m, "Transaction")
+	ret0, _ := ret[0].(store.StoreTransaction)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Transaction indicates an expected call of Transaction
+func (mr *MockStoreTransactionMockRecorder) Transaction() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Transaction", reflect.TypeOf((*MockStoreTransaction)(nil).Transaction))
+}
+
+// Commit mocks base method
+func (m *MockStoreTransaction) Commit() error {
+	ret := m.ctrl.Call(m, "Commit")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Commit indicates an expected call of Commit
+func (mr *MockStoreTransactionMockRecorder) Commit() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Commit", reflect.TypeOf((*MockStoreTransaction)(nil).Commit))
+}
+
+// Rollback mocks base method
+func (m *MockStoreTransaction) Rollback() error {
+	ret := m.ctrl.Call(m, "Rollback")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Rollback indicates an expected call of Rollback
+func (mr *MockStoreTransactionMockRecorder) Rollback() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rollback", reflect.TypeOf((*MockStoreTransaction)(nil).Rollback))
 }
 
 // MockImageStore is a mock of ImageStore interface
