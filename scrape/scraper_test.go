@@ -249,10 +249,10 @@ func TestAsync_ScrapeImage(t *testing.T) {
 			},
 			imagesInDatabase: []*store.Image{
 				{
-					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					CreatedAt:     time.Date(2018, 10, 25, 1, 0, 0, 0, time.UTC),
 					Digest:        "ABC",
 					Name:          "dev.local/unittest",
-					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					ScrapedAt:     time.Date(2018, 10, 25, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
 				},
 			},
@@ -261,11 +261,11 @@ func TestAsync_ScrapeImage(t *testing.T) {
 			},
 			expectedImages: []*store.Image{
 				{
-					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					CreatedAt:     time.Date(2018, 10, 25, 1, 0, 0, 0, time.UTC),
 					Digest:        "ABC",
 					Model:         store.Model{ID: 1},
 					Name:          "dev.local/unittest",
-					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					ScrapedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
 				},
 			},
@@ -305,10 +305,10 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 			imageToScrape: registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
 			imagesInDatabase: []*store.Image{
 				{
-					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					CreatedAt:     time.Date(2018, 10, 25, 1, 0, 0, 0, time.UTC),
 					Digest:        "ABC",
 					Name:          "dev.local/unittest",
-					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					ScrapedAt:     time.Date(2018, 10, 25, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
 				},
 			},
@@ -317,11 +317,11 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 			},
 			expectedImages: []*store.Image{
 				&store.Image{
-					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					CreatedAt:     time.Date(2018, 10, 25, 1, 0, 0, 0, time.UTC),
 					Digest:        "ABC",
 					Model:         store.Model{ID: 1},
 					Name:          "dev.local/unittest",
-					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					ScrapedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
 				},
 			},
@@ -337,10 +337,10 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 			},
 			imagesInDatabase: []*store.Image{
 				{
-					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					CreatedAt:     time.Date(2018, 10, 25, 1, 0, 0, 0, time.UTC),
 					Digest:        "ABC",
 					Name:          "dev.local/unittest",
-					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					ScrapedAt:     time.Date(2018, 10, 25, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
 				},
 			},
@@ -349,11 +349,11 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 			},
 			expectedImages: []*store.Image{
 				&store.Image{
-					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					CreatedAt:     time.Date(2018, 10, 25, 1, 0, 0, 0, time.UTC),
 					Digest:        "ABC",
 					Model:         store.Model{ID: 1},
 					Name:          "dev.local/unittest",
-					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					ScrapedAt:     time.Date(2018, 10, 25, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
 				},
 				&store.Image{
@@ -378,10 +378,10 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 			},
 			imagesInDatabase: []*store.Image{
 				{
-					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					CreatedAt:     time.Date(2018, 10, 25, 1, 0, 0, 0, time.UTC),
 					Digest:        "DEF",
 					Name:          "dev.local/unittest",
-					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					ScrapedAt:     time.Date(2018, 10, 25, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
 				},
 			},
@@ -390,11 +390,11 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 			},
 			expectedImages: []*store.Image{
 				&store.Image{
-					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					CreatedAt:     time.Date(2018, 10, 25, 1, 0, 0, 0, time.UTC),
 					Digest:        "DEF",
 					Model:         store.Model{ID: 1},
 					Name:          "dev.local/unittest",
-					ScrapedAt:     time.Date(2018, 10, 26, 2, 0, 0, 0, time.UTC),
+					ScrapedAt:     time.Date(2018, 10, 25, 2, 0, 0, 0, time.UTC),
 					SchemaVersion: 2,
 				},
 				&store.Image{

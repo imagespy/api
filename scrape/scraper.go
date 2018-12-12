@@ -97,6 +97,12 @@ func (a *async) ScrapeImage(i registry.Image) error {
 			}
 		}
 
+		image.ScrapedAt = a.timeFunc()
+		err = a.store.Images().Update(image)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -194,6 +200,7 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 		return err
 	}
 
+	latestImageCreated := false
 	var latestImage *store.Image
 	latestImage, err = a.store.Images().Get(store.ImageGetOptions{Digest: latestRegImageDigest})
 	if err != nil {
@@ -210,6 +217,7 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 					return err
 				}
 			}
+			latestImageCreated = true
 		} else {
 			return err
 		}
@@ -240,6 +248,14 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 	if currentTag != nil && currentTag.IsLatest == true {
 		currentTag.IsLatest = false
 		err := a.store.Tags().Update(currentTag)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !latestImageCreated {
+		latestImage.ScrapedAt = a.timeFunc()
+		err = a.store.Images().Update(latestImage)
 		if err != nil {
 			return err
 		}
