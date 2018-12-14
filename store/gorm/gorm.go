@@ -366,10 +366,15 @@ func (g *gormPlatform) Get(o store.PlatformGetOptions) (*store.Platform, error) 
 		whereValues = append(whereValues, o.OS)
 	}
 
-	whereQuery = append(whereQuery, "imagespy_platform.os_version = ?")
-	whereValues = append(whereValues, o.OSVersion)
-	whereQuery = append(whereQuery, "imagespy_platform.variant = ?")
-	whereValues = append(whereValues, o.Variant)
+	if o.OSVersion != nil {
+		whereQuery = append(whereQuery, "imagespy_platform.os_version = ?")
+		whereValues = append(whereValues, *o.OSVersion)
+	}
+
+	if o.Variant != nil {
+		whereQuery = append(whereQuery, "imagespy_platform.variant = ?")
+		whereValues = append(whereValues, *o.Variant)
+	}
 
 	p := &store.Platform{}
 	result := g.db.Where(strings.Join(whereQuery, " AND "), whereValues...).Take(p)

@@ -85,8 +85,8 @@ type PlatformGetOptions struct {
 	Architecture string
 	ImageID      int
 	OS           string
-	OSVersion    string
-	Variant      string
+	OSVersion    *string
+	Variant      *string
 }
 
 type PlatformListOptions struct {
