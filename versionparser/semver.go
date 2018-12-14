@@ -35,6 +35,10 @@ func (p *Major) String() string {
 	return p.raw
 }
 
+func (p *Major) Weight() int {
+	return 80
+}
+
 func majorFactory(version string) (VersionParser, error) {
 	matches := majorRegexp.FindStringSubmatch(version)
 	matchCount := len(matches)
@@ -82,6 +86,10 @@ func (p *MajorMinor) IsGreaterThan(other VersionParser) (bool, error) {
 
 func (p *MajorMinor) String() string {
 	return p.raw
+}
+
+func (p *MajorMinor) Weight() int {
+	return 90
 }
 
 func majorMinorFactory(version string) (VersionParser, error) {
@@ -148,6 +156,10 @@ func (p *MajorMinorPatch) IsGreaterThan(other VersionParser) (bool, error) {
 
 func (p *MajorMinorPatch) String() string {
 	return p.raw
+}
+
+func (p *MajorMinorPatch) Weight() int {
+	return 100
 }
 
 func majorMinorPatchFactory(version string) (VersionParser, error) {

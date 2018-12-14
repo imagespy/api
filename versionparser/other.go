@@ -34,6 +34,10 @@ func (p *NameDate) String() string {
 	return p.raw
 }
 
+func (p *NameDate) Weight() int {
+	return 70
+}
+
 func nameDateFactory(version string) (VersionParser, error) {
 	matches := nameDateRegexp.FindStringSubmatch(version)
 	matchCount := len(matches)
@@ -70,6 +74,10 @@ func (p *Static) String() string {
 	return p.raw
 }
 
+func (p *Static) Weight() int {
+	return 60
+}
+
 func staticFactory(version string) (VersionParser, error) {
 	_, ok := staticKnownTags[version]
 	if !ok {
@@ -87,6 +95,10 @@ type Unknown struct {
 
 func (p *Unknown) Distinction() string {
 	return fmt.Sprintf("unknown-%s", p.raw)
+}
+
+func (p *Unknown) Weight() int {
+	return 10
 }
 
 func (p *Unknown) IsGreaterThan(other VersionParser) (bool, error) {

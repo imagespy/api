@@ -14,6 +14,7 @@ type VersionParser interface {
 	Distinction() string
 	IsGreaterThan(other VersionParser) (bool, error)
 	String() string
+	Weight() int
 }
 
 type DefaultRegistry struct {
