@@ -73,7 +73,7 @@ func (h *imageHandler) createImage(w http.ResponseWriter, r *http.Request) {
 	})
 	if err == nil {
 		log.Warn("image to create already exists")
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusConflict)
 		return
 	}
 
