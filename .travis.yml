@@ -16,6 +16,7 @@ script:
 deploy:
   - provider: script
     script:
+      - echo $DOCKER_USERNAME
       - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
       - make release_docker
     on:
