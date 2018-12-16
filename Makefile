@@ -2,6 +2,7 @@ DATABASE_ADDR ?= 127.0.0.1:33306
 DATABASE_CREDENTIALS ?= root:root
 MIGRATE_OS_ARCH ?= darwin-amd64
 MIGRATE_VERSION = v4.0.2
+VERSION ?= master
 
 .DEFAULT_GOAL=test
 
@@ -35,3 +36,12 @@ test:
 
 test_scrape:
 	RUN_SCRAPE_TESTS=1 go test -v ./scrape
+
+build:
+	go build -ldflags="-X github.com/imagespy/api/version.Version=${VERSION}"
+
+build_docker:
+	docker build --build-arg VERSION=${VERSION} -t imagespy/api:${VERSION} .
+
+release_docker: build_docker
+	docker push imagespy/api:${VERSION}

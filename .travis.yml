@@ -12,3 +12,18 @@ before_install:
 script:
   - make test
   - make test_scrape
+
+deploy:
+  - provider: script
+    script:
+      - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+      - make build_docker
+    on:
+      branch: master
+
+  - provider: script
+    script:
+      - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+      - VERSION=$TRAVIS_TAG make build_docker
+    on:
+      tags: true
