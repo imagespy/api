@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/imagespy/api/version"
 	"github.com/spf13/cobra"
 )
 
@@ -14,6 +15,6 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Version information",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("VERSION")
+		fmt.Println(version.Version)
 	},
 }
