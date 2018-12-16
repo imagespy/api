@@ -530,7 +530,7 @@ func Migrate(connection string, migrationsPath string) error {
 
 	defer mig.Close()
 	err = mig.Up()
-	if err != nil {
+	if err != nil && err != migrate.ErrNoChange {
 		return err
 	}
 
