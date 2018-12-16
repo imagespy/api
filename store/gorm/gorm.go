@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/golang-migrate/migrate"
 	"github.com/imagespy/api/store"
 	gormlib "github.com/jinzhu/gorm"
 )
@@ -516,6 +517,21 @@ func (g *gormTag) Update(t *store.Tag) error {
 	result := g.db.Save(t)
 	if result.Error != nil {
 		return result.Error
+	}
+
+	return nil
+}
+
+func Migrate(connection string, migrationsPath string) error {
+	mig, err := migrate.New(migrationsPath, "mysql://"+connection+"&multiStatements=true")
+	if err != nil {
+		return err
+	}
+
+	defer mig.Close()
+	err = mig.Up()
+	if err != nil {
+		return err
 	}
 
 	return nil

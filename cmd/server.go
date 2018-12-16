@@ -12,13 +12,15 @@ import (
 )
 
 var (
-	serverDBConnection     string
-	serverHTTPAddress      string
-	serverLogLevel         string
-	serverRegistryAddress  string
-	serverRegistryInsecure bool
-	serverRegistryPassword string
-	serverRegistryUsername string
+	serverDBConnection      string
+	serverHTTPAddress       string
+	serverLogLevel          string
+	serverMigrationsEnabled bool
+	serverMigrationsPath    string
+	serverRegistryAddress   string
+	serverRegistryInsecure  bool
+	serverRegistryPassword  string
+	serverRegistryUsername  string
 )
 
 var serverCmd = &cobra.Command{
@@ -26,6 +28,14 @@ var serverCmd = &cobra.Command{
 	Short: "Serves the HTTP API",
 	Run: func(cmd *cobra.Command, args []string) {
 		mustInitLogging(serverLogLevel)
+		if serverMigrationsEnabled {
+			log.Info("executing migrations...")
+			err := gorm.Migrate(serverDBConnection, serverMigrationsPath)
+			if err != nil {
+				log.Fatalf("error executing migrations: %s", err)
+			}
+		}
+
 		s, err := gorm.New(serverDBConnection)
 		if err != nil {
 			log.Fatalf("unable to connect to database: %s", err)
@@ -54,6 +64,8 @@ func init() {
 	serverCmd.Flags().StringVar(&serverDBConnection, "db.connection", "", "connection string to connect to the database")
 	serverCmd.Flags().StringVar(&serverHTTPAddress, "http.address", ":3001", "ip:port combination to bind to")
 	serverCmd.Flags().StringVar(&serverLogLevel, "log.level", "warn", "set the log level")
+	serverCmd.Flags().BoolVar(&serverMigrationsEnabled, "migrations.enabled", false, "execute migrations on startup")
+	serverCmd.Flags().StringVar(&serverMigrationsPath, "migrations.path", "file:///migrations", "path to directory containing migration files")
 	serverCmd.Flags().StringVar(&serverRegistryAddress, "registry.address", "docker.io", "the address of the docker registry")
 	serverCmd.Flags().BoolVar(&serverRegistryInsecure, "registry.insecure", false, "disable certificate validation")
 	serverCmd.Flags().StringVar(&serverRegistryPassword, "registry.password", "", "the password to authenticate against the docker registry")
