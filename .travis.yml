@@ -17,13 +17,13 @@ deploy:
   - provider: script
     script:
       - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
-      - make build_docker
+      - make release_docker
     on:
       branch: master
 
   - provider: script
     script:
       - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
-      - VERSION=$TRAVIS_TAG make build_docker
+      - VERSION=$TRAVIS_TAG make release_docker
     on:
       tags: true
