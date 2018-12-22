@@ -12,6 +12,7 @@ import (
 var (
 	updaterDBConnection     string
 	updaterLogLevel         string
+	updaterPromPushAddress  string
 	updaterRegistryAddress  string
 	updaterRegistryInsecure bool
 	updaterRegistryPassword string
@@ -44,7 +45,7 @@ var updaterCmd = &cobra.Command{
 		}
 
 		scraper := scrape.NewScraper(reg, s)
-		u := updater.NewGroupingUpdater(scraper, s, updaterWorkerCount)
+		u := updater.NewGroupingUpdater(updaterPromPushAddress, scraper, s, updaterWorkerCount)
 		err = u.Run()
 		if err != nil {
 			log.Fatal(err)
@@ -54,11 +55,12 @@ var updaterCmd = &cobra.Command{
 
 func init() {
 	updaterCmd.Flags().StringVar(&updaterDBConnection, "db.connection", "", "connection string to connect to the database")
-	updaterCmd.Flags().StringVar(&updaterLogLevel, "log.level", "warn", "set the log level")
-	updaterCmd.Flags().StringVar(&updaterRegistryAddress, "registry.address", "docker.io", "the address of the docker registry")
+	updaterCmd.Flags().StringVar(&updaterLogLevel, "log.level", "warn", "log level")
+	updaterCmd.Flags().StringVar(&updaterPromPushAddress, "pushgateway.address", "", "address of the Prometheus Pushgateway")
+	updaterCmd.Flags().StringVar(&updaterRegistryAddress, "registry.address", "docker.io", "address of the docker registry")
 	updaterCmd.Flags().BoolVar(&updaterRegistryInsecure, "registry.insecure", false, "disable certificate validation")
-	updaterCmd.Flags().StringVar(&updaterRegistryPassword, "registry.password", "", "the password to authenticate against the docker registry")
-	updaterCmd.Flags().StringVar(&updaterRegistryUsername, "registry.username", "", "the username to authenticate against the docker registry")
+	updaterCmd.Flags().StringVar(&updaterRegistryPassword, "registry.password", "", "password to authenticate against the docker registry")
+	updaterCmd.Flags().StringVar(&updaterRegistryUsername, "registry.username", "", "username to authenticate against the docker registry")
 	updaterCmd.Flags().IntVar(&updaterWorkerCount, "workers", 1, "number of workers that process updates")
 	rootCmd.AddCommand(updaterCmd)
 }

@@ -366,13 +366,14 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:7ee0c491cf43b50c924e2081e877281420f8418aaa3bc6f2b508c557f10cd92b"
+  digest = "1:625ef366e564c7de3cc3ef4f79c29ced46b06b71b310d9184afe10eb8a6185e7"
   name = "github.com/prometheus/client_golang"
   packages = [
     "prometheus",
     "prometheus/internal",
     "prometheus/promauto",
     "prometheus/promhttp",
+    "prometheus/push",
   ]
   pruneopts = "UT"
   revision = "abad2d1bd44235a26707c172eab6bca5bf2dbad3"
@@ -581,6 +582,7 @@
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/client_golang/prometheus/promauto",
     "github.com/prometheus/client_golang/prometheus/promhttp",
+    "github.com/prometheus/client_golang/prometheus/push",
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
     "github.com/spf13/viper",

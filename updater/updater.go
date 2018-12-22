@@ -3,12 +3,30 @@ package updater
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/Jeffail/tunny"
 	"github.com/imagespy/api/scrape"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/push"
 
 	"github.com/imagespy/api/store"
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	completionTime = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "imagespy_updater_last_completion_timestamp_seconds",
+		Help: "The timestamp of the last completion of a update run, successful or not.",
+	})
+	duration = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "imagespy_updater_duration_seconds",
+		Help: "The duration of the last update run in seconds.",
+	})
+	failCount = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "imagespy_updater_last_scrape_fails",
+		Help: "The number of failed scrapes during the last run.",
+	})
 )
 
 type Updater interface {
@@ -16,13 +34,15 @@ type Updater interface {
 }
 
 type groupingUpdater struct {
+	dispatchFunc func(groups map[string][]string)
+	promPusher   *push.Pusher
 	scraper      scrape.Scraper
 	store        store.Store
-	dispatchFunc func(groups map[string][]string)
 	workerCount  int
 }
 
 func (s *groupingUpdater) Run() error {
+	start := time.Now()
 	b := true
 	tags, err := s.store.Tags().List(store.TagListOptions{
 		IsLatest: &b,
@@ -51,6 +71,15 @@ func (s *groupingUpdater) Run() error {
 	}
 
 	s.dispatchFunc(grouped)
+	duration.Set(time.Since(start).Seconds())
+	completionTime.SetToCurrentTime()
+	if s.promPusher != nil {
+		err = s.promPusher.Add()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -60,15 +89,22 @@ func (s *groupingUpdater) processRepository(images []string) {
 		err := s.scraper.ScrapeLatestImageByName(img)
 		if err != nil {
 			log.Errorf("unable to scrape latest image: %s", err)
+			failCount.Inc()
 		}
 	}
 }
 
-func NewGroupingUpdater(scraper scrape.Scraper, s store.Store, wc int) Updater {
+func NewGroupingUpdater(pushgatewayURL string, scraper scrape.Scraper, s store.Store, wc int) Updater {
 	su := &groupingUpdater{
 		scraper:     scraper,
 		store:       s,
 		workerCount: wc,
+	}
+
+	if pushgatewayURL != "" {
+		registry := prometheus.NewRegistry()
+		registry.MustRegister(completionTime, duration, failCount)
+		su.promPusher = push.New(pushgatewayURL, "imagespy").Gatherer(registry)
 	}
 
 	pool := tunny.NewFunc(wc, func(payload interface{}) interface{} {
