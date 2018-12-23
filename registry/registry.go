@@ -8,12 +8,6 @@ import (
 
 const digestSHA256GzippedEmptyTar = digest.Digest("sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4")
 
-type Registry interface {
-	Address() string
-	Repository(imageName string) (Repository, error)
-	Image(imageName string) (Image, error)
-}
-
 type Opts struct {
 	Insecure bool
 	Password string
@@ -22,6 +16,7 @@ type Opts struct {
 
 type registry struct {
 	address   string
+	opts      Opts
 	regClient *reg.Registry
 }
 
@@ -53,7 +48,11 @@ func NewRegistry(address string, o Opts) (Registry, error) {
 		return nil, err
 	}
 
-	r := &registry{address, regClient}
+	r := &registry{
+		address:   address,
+		regClient: regClient,
+		opts:      o,
+	}
 	return r, nil
 }
 
@@ -90,19 +89,17 @@ func (r *registry) Address() string {
 }
 
 func (r *registry) Image(imageName string) (Image, error) {
+	repo, err := r.Repository(imageName)
+	if err != nil {
+		return nil, err
+	}
+
 	img, err := reg.ParseImage(imageName)
 	if err != nil {
 		return nil, err
 	}
 
-	return &image{
-		parsed:    img,
-		regClient: r.regClient,
-		repository: &repository{
-			name:      img.Path,
-			regClient: r.regClient,
-		},
-	}, nil
+	return repo.Image(img.Digest.String(), img.Tag), nil
 }
 
 func (r *registry) Repositories() ([]Repository, error) {
@@ -113,7 +110,12 @@ func (r *registry) Repositories() ([]Repository, error) {
 	}
 
 	for _, catalogItem := range catalogItems {
-		repositories = append(repositories, &repository{name: catalogItem, regClient: r.regClient})
+		repo, err := r.Repository(catalogItem)
+		if err != nil {
+			return nil, err
+		}
+
+		repositories = append(repositories, repo)
 	}
 
 	return repositories, nil
@@ -125,9 +127,14 @@ func (r *registry) Repository(imageName string) (Repository, error) {
 		return nil, err
 	}
 
+	client, err := newRegClient(img.Domain, r.opts)
+	if err != nil {
+		return nil, err
+	}
+
 	return &repository{
 		name:      img.Path,
-		regClient: r.regClient,
+		regClient: client,
 	}, nil
 }
 

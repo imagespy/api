@@ -12,6 +12,15 @@ type Config interface {
 	Size() int
 }
 
+type Image interface {
+	Digest() (string, error)
+	Platform(arch string, os string) (Platform, error)
+	Platforms() ([]Platform, error)
+	Repository() Repository
+	SchemaVersion() (int, error)
+	Tag() (string, error)
+}
+
 type Layer interface {
 	Digest() (string, error)
 	MediaType() string
@@ -34,4 +43,16 @@ type Platform interface {
 	OSFeatures() []string
 	OSVersion() string
 	Variant() string
+}
+
+type Registry interface {
+	Address() string
+	Repository(imageName string) (Repository, error)
+	Image(imageName string) (Image, error)
+}
+
+type Repository interface {
+	FullName() string
+	Image(digest string, tag string) Image
+	Images() ([]Image, error)
 }

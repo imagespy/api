@@ -101,6 +101,21 @@ func (m *mockRegistry) Image(imageName string) (registry.Image, error) {
 	return nil, fmt.Errorf("Unknown reference for %s", imageName)
 }
 
+func (m *mockRegistry) Repository(imageName string) (registry.Repository, error) {
+	p, err := reg.ParseImage(imageName)
+	if err != nil {
+		return nil, err
+	}
+
+	name := fmt.Sprintf("%s/%s", p.Domain, p.Path)
+	repository, ok := m.repositories[name]
+	if !ok {
+		return nil, fmt.Errorf("Unknown repository for %s", imageName)
+	}
+
+	return repository, nil
+}
+
 func NewRegistry() *mockRegistry {
 	return &mockRegistry{repositories: map[string]*mockRepository{}}
 }
@@ -113,6 +128,26 @@ type mockRepository struct {
 
 func (m *mockRepository) FullName() string {
 	return m.name
+}
+
+func (m *mockRepository) Image(digest, tag string) registry.Image {
+	for _, i := range m.images {
+		if digest != "" {
+			iDigest, _ := i.Digest()
+			if iDigest == digest {
+				return i
+			}
+		}
+
+		if tag != "" {
+			iTag, _ := i.Tag()
+			if iTag == tag {
+				return i
+			}
+		}
+	}
+
+	return nil
 }
 
 func (m *mockRepository) Images() ([]registry.Image, error) {

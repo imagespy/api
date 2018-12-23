@@ -9,15 +9,6 @@ import (
 	reg "github.com/genuinetools/reg/registry"
 )
 
-type Image interface {
-	Digest() (string, error)
-	Platform(arch string, os string) (Platform, error)
-	Platforms() ([]Platform, error)
-	Repository() Repository
-	SchemaVersion() (int, error)
-	Tag() (string, error)
-}
-
 type image struct {
 	parsed        reg.Image
 	platforms     []Platform

@@ -7,12 +7,6 @@ import (
 	reg "github.com/genuinetools/reg/registry"
 )
 
-type Repository interface {
-	FullName() string
-	Image(digest string, tag string) Image
-	Images() ([]Image, error)
-}
-
 type repository struct {
 	name      string
 	regClient *reg.Registry
