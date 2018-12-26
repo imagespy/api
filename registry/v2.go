@@ -104,12 +104,20 @@ func (m *ManifestV2) SchemaVersion() int {
 }
 
 func NewManifestV2(m schema2.Manifest, p *PlatformV2) *ManifestV2 {
+	knownDigests := map[string]struct{}{}
 	layerV2s := []*LayerV2{}
 	for _, rawLayer := range m.Layers {
 		if rawLayer.Digest == digestSHA256GzippedEmptyTar {
 			continue
 		}
 
+		digest := rawLayer.Digest.String()
+		_, exists := knownDigests[digest]
+		if exists {
+			continue
+		}
+
+		knownDigests[digest] = struct{}{}
 		layerV2s = append(layerV2s, &LayerV2{rawLayer: rawLayer})
 	}
 
