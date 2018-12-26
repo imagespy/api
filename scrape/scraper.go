@@ -358,8 +358,6 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 			return nil, nil, err
 		}
 
-		fmt.Printf("%+v\n", platform)
-
 		for idx, l := range regManifest.Layers() {
 			layerDigest, err := l.Digest()
 			if err != nil {
@@ -367,7 +365,6 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 				return nil, nil, err
 			}
 
-			fmt.Println(layerDigest)
 			layer := &store.Layer{Digest: layerDigest}
 			err = layerClient.Create(layer)
 			if err != nil {
@@ -377,7 +374,6 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 			}
 
 			layerPosition := &store.LayerPosition{LayerID: layer.ID, PlatformID: platform.ID, Position: idx}
-			fmt.Printf("%+v\n", layerPosition)
 			err = layerPositionClient.Create(layerPosition)
 			if err != nil {
 				log.Errorf("unable to create layer position '%d' for layer '%s' for platform '%s': %s", idx, layer.Digest, platform.ManifestDigest, err)
