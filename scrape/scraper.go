@@ -35,21 +35,17 @@ var (
 
 type Scraper interface {
 	ScrapeImage(i registry.Image) error
-	ScrapeImageByName(n string) error
 	ScrapeLatestImage(i registry.Image) error
-	ScrapeLatestImageByName(n string) error
 }
 
-func NewScraper(reg registry.Registry, s store.Store) Scraper {
+func NewScraper(s store.Store) Scraper {
 	return &async{
-		reg:      reg,
 		store:    s,
 		timeFunc: func() time.Time { return time.Now().UTC() },
 	}
 }
 
 type async struct {
-	reg      registry.Registry
 	store    store.Store
 	timeFunc func() time.Time
 }
@@ -123,20 +119,6 @@ func (a *async) ScrapeImage(i registry.Image) error {
 	}
 
 	return fmt.Errorf("ScrapeImage: reading image with digest %s failed: %s", digest, err)
-}
-
-func (a *async) ScrapeImageByName(n string) error {
-	regImage, err := a.reg.Image(n)
-	if err != nil {
-		return err
-	}
-
-	err = a.ScrapeImage(regImage)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (a *async) ScrapeLatestImage(i registry.Image) error {
@@ -264,20 +246,6 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 	return nil
 }
 
-func (a *async) ScrapeLatestImageByName(n string) error {
-	regImage, err := a.reg.Image(n)
-	if err != nil {
-		return err
-	}
-
-	err = a.ScrapeLatestImage(regImage)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image) (*store.Image, []*store.Layer, error) {
 	tx, err := a.store.Transaction()
 	if err != nil {
@@ -390,6 +358,8 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 			return nil, nil, err
 		}
 
+		fmt.Printf("%+v\n", platform)
+
 		for idx, l := range regManifest.Layers() {
 			layerDigest, err := l.Digest()
 			if err != nil {
@@ -397,6 +367,7 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 				return nil, nil, err
 			}
 
+			fmt.Println(layerDigest)
 			layer := &store.Layer{Digest: layerDigest}
 			err = layerClient.Create(layer)
 			if err != nil {
@@ -406,6 +377,7 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 			}
 
 			layerPosition := &store.LayerPosition{LayerID: layer.ID, PlatformID: platform.ID, Position: idx}
+			fmt.Printf("%+v\n", layerPosition)
 			err = layerPositionClient.Create(layerPosition)
 			if err != nil {
 				log.Errorf("unable to create layer position '%d' for layer '%s' for platform '%s': %s", idx, layer.Digest, platform.ManifestDigest, err)

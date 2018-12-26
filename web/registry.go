@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"sync"
 
+	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
 
 	"github.com/docker/distribution/manifest/schema2"
@@ -18,6 +19,7 @@ import (
 type registryHandler struct {
 	eventDedup      map[string]struct{}
 	eventDedupMutex *sync.RWMutex
+	registry        registry.Registry
 	scraper         scrape.Scraper
 }
 
@@ -55,7 +57,12 @@ func (rh *registryHandler) registryEvent(w http.ResponseWriter, r *http.Request)
 			continue
 		}
 
-		imageName := fmt.Sprintf("%s:%s/%s:%s", targetURL.Hostname(), targetURL.Port(), event.Target.Repository, event.Target.Tag)
+		port := ":" + targetURL.Port()
+		if port == ":443" || port == ":80" {
+			port = ""
+		}
+
+		imageName := fmt.Sprintf("%s%s/%s:%s", targetURL.Hostname(), port, event.Target.Repository, event.Target.Tag)
 		rh.eventDedupMutex.RLock()
 		_, exists := rh.eventDedup[imageName]
 		rh.eventDedupMutex.RUnlock()
@@ -64,14 +71,21 @@ func (rh *registryHandler) registryEvent(w http.ResponseWriter, r *http.Request)
 			rh.eventDedup[imageName] = struct{}{}
 			rh.eventDedupMutex.Unlock()
 			go func() {
+				imageName := imageName
 				defer func() {
 					rh.eventDedupMutex.Lock()
 					delete(rh.eventDedup, imageName)
 					rh.eventDedupMutex.Unlock()
 				}()
 
-				rh.scraper.ScrapeImageByName(imageName)
-				rh.scraper.ScrapeLatestImageByName(imageName)
+				regImage, err := rh.registry.Image(imageName)
+				if err != nil {
+					log.Error(err)
+					return
+				}
+
+				rh.scraper.ScrapeImage(regImage)
+				rh.scraper.ScrapeLatestImage(regImage)
 			}()
 		}
 	}

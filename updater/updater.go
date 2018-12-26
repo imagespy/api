@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Jeffail/tunny"
+	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -36,6 +37,7 @@ type Updater interface {
 type groupingUpdater struct {
 	dispatchFunc func(groups map[string][]string)
 	promPusher   *push.Pusher
+	registry     registry.Registry
 	scraper      scrape.Scraper
 	store        store.Store
 	workerCount  int
@@ -84,18 +86,33 @@ func (s *groupingUpdater) Run() error {
 }
 
 func (s *groupingUpdater) processRepository(images []string) {
+	repo, err := s.registry.Repository(images[0])
+	if err != nil {
+		log.Errorf("unable to parse repository from image %s: %s", images[0], err)
+		failCount.Inc()
+		return
+	}
+
 	for _, img := range images {
 		log.Debugf("scraping latest image for %s", img)
-		err := s.scraper.ScrapeLatestImageByName(img)
+		_, _, tag, digest, err := registry.ParseImage(img)
 		if err != nil {
-			log.Errorf("unable to scrape latest image: %s", err)
+			log.Errorf("unable to scrape latest image of %s: %s", img, err)
+			failCount.Inc()
+			continue
+		}
+
+		err = s.scraper.ScrapeLatestImage(repo.Image(digest, tag))
+		if err != nil {
+			log.Errorf("unable to scrape latest image of %s: %s", img, err)
 			failCount.Inc()
 		}
 	}
 }
 
-func NewGroupingUpdater(pushgatewayURL string, scraper scrape.Scraper, s store.Store, wc int) Updater {
+func NewGroupingUpdater(pushgatewayURL string, r registry.Registry, scraper scrape.Scraper, s store.Store, wc int) Updater {
 	su := &groupingUpdater{
+		registry:    r,
 		scraper:     scraper,
 		store:       s,
 		workerCount: wc,

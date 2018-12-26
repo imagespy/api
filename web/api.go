@@ -52,6 +52,7 @@ type latestImageSerialize struct {
 }
 
 type imageHandler struct {
+	registry   registry.Registry
 	serializer func(interface{}) ([]byte, error)
 	scraper    scrape.Scraper
 	Store      store.Store
@@ -83,14 +84,21 @@ func (h *imageHandler) createImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.scraper.ScrapeImageByName(imageID)
+	regImage, err := h.registry.Image(imageID)
+	if err != nil {
+		log.Errorf("instantiating registry image: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = h.scraper.ScrapeImage(regImage)
 	if err != nil {
 		log.Errorf("scraping registry image: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = h.scraper.ScrapeLatestImageByName(imageID)
+	err = h.scraper.ScrapeLatestImage(regImage)
 	if err != nil {
 		log.Errorf("scraping latest registry image: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -274,8 +282,9 @@ func convertImageToResult(image *store.Image, tags []*store.Tag, latestImage *st
 	return imageSerialized
 }
 
-func Init(scraper scrape.Scraper, store store.Store) http.Handler {
+func Init(registry registry.Registry, scraper scrape.Scraper, store store.Store) http.Handler {
 	h := &imageHandler{
+		registry:   registry,
 		serializer: json.Marshal,
 		scraper:    scraper,
 		Store:      store,
@@ -284,6 +293,7 @@ func Init(scraper scrape.Scraper, store store.Store) http.Handler {
 	rh := &registryHandler{
 		eventDedup:      map[string]struct{}{},
 		eventDedupMutex: &sync.RWMutex{},
+		registry:        registry,
 		scraper:         scraper,
 	}
 

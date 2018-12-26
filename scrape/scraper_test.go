@@ -134,7 +134,7 @@ func executeTest(t *testing.T, tc testcase, funcToTest string) {
 
 		mockTime := &timeMock{}
 
-		scraper := &async{reg: mockRegistry, store: s, timeFunc: mockTime.Time}
+		scraper := &async{store: s, timeFunc: mockTime.Time}
 		switch funcToTest {
 		case "ScrapeImage":
 			err = scraper.ScrapeImage(tc.imageToScrape)

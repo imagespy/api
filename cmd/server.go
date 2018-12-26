@@ -55,7 +55,7 @@ var serverCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		handler := web.Init(scrape.NewScraper(reg, s), s)
+		handler := web.Init(reg, scrape.NewScraper(s), s)
 		log.Fatal(http.ListenAndServe(serverHTTPAddress, handler))
 	},
 }

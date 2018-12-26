@@ -45,18 +45,6 @@ func (mr *MockScraperMockRecorder) ScrapeImage(i interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScrapeImage", reflect.TypeOf((*MockScraper)(nil).ScrapeImage), i)
 }
 
-// ScrapeImageByName mocks base method
-func (m *MockScraper) ScrapeImageByName(n string) error {
-	ret := m.ctrl.Call(m, "ScrapeImageByName", n)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ScrapeImageByName indicates an expected call of ScrapeImageByName
-func (mr *MockScraperMockRecorder) ScrapeImageByName(n interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScrapeImageByName", reflect.TypeOf((*MockScraper)(nil).ScrapeImageByName), n)
-}
-
 // ScrapeLatestImage mocks base method
 func (m *MockScraper) ScrapeLatestImage(i registry.Image) error {
 	ret := m.ctrl.Call(m, "ScrapeLatestImage", i)
@@ -67,16 +55,4 @@ func (m *MockScraper) ScrapeLatestImage(i registry.Image) error {
 // ScrapeLatestImage indicates an expected call of ScrapeLatestImage
 func (mr *MockScraperMockRecorder) ScrapeLatestImage(i interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScrapeLatestImage", reflect.TypeOf((*MockScraper)(nil).ScrapeLatestImage), i)
-}
-
-// ScrapeLatestImageByName mocks base method
-func (m *MockScraper) ScrapeLatestImageByName(n string) error {
-	ret := m.ctrl.Call(m, "ScrapeLatestImageByName", n)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ScrapeLatestImageByName indicates an expected call of ScrapeLatestImageByName
-func (mr *MockScraperMockRecorder) ScrapeLatestImageByName(n interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScrapeLatestImageByName", reflect.TypeOf((*MockScraper)(nil).ScrapeLatestImageByName), n)
 }

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	registryMock "github.com/imagespy/api/registry/mock"
 	"github.com/imagespy/api/scrape"
 	"github.com/imagespy/api/store"
 	"github.com/imagespy/api/store/mock"
@@ -17,11 +18,11 @@ func TestSimpleUpdater_Run(t *testing.T) {
 	imageStore := mock.NewMockImageStore(ctrl)
 	imageStore.EXPECT().
 		Get(gomock.Eq(store.ImageGetOptions{ID: 1})).
-		Return(&store.Image{Digest: "abc", Name: "first"}, nil).
+		Return(&store.Image{Digest: "abc", Name: "unit.test/first"}, nil).
 		AnyTimes()
 	imageStore.EXPECT().
 		Get(gomock.Eq(store.ImageGetOptions{ID: 2})).
-		Return(&store.Image{Digest: "def", Name: "second"}, nil).
+		Return(&store.Image{Digest: "def", Name: "unit.test/second"}, nil).
 		AnyTimes()
 
 	tagStore := mock.NewMockTagStore(ctrl)
@@ -44,20 +45,29 @@ func TestSimpleUpdater_Run(t *testing.T) {
 		Return(tagStore).
 		AnyTimes()
 
+	rmi1 := registryMock.NewImage("", "unit.test/first", nil, 2, "1")
+	rmi2 := registryMock.NewImage("", "unit.test/first", nil, 2, "latest")
+	rmi3 := registryMock.NewImage("", "unit.test/second", nil, 2, "v3")
+	rm := registryMock.NewRegistry()
+	rm.AddImage(rmi1)
+	rm.AddImage(rmi2)
+	rm.AddImage(rmi3)
+
 	scraper := scrape.NewMockScraper(ctrl)
 	scraper.EXPECT().
-		ScrapeLatestImageByName(gomock.Eq("first:1")).
+		ScrapeLatestImage(rmi1).
 		Return(nil)
 	scraper.EXPECT().
-		ScrapeLatestImageByName(gomock.Eq("first:latest")).
+		ScrapeLatestImage(rmi2).
 		Return(nil)
 	scraper.EXPECT().
-		ScrapeLatestImageByName(gomock.Eq("second:v3")).
+		ScrapeLatestImage(rmi3).
 		Return(nil)
 
 	s := &groupingUpdater{
-		scraper: scraper,
-		store:   store,
+		registry: rm,
+		scraper:  scraper,
+		store:    store,
 	}
 	s.dispatchFunc = func(groups map[string][]string) {
 		for _, group := range groups {

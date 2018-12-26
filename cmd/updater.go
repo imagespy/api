@@ -44,8 +44,8 @@ var updaterCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		scraper := scrape.NewScraper(reg, s)
-		u := updater.NewGroupingUpdater(updaterPromPushAddress, scraper, s, updaterWorkerCount)
+		scraper := scrape.NewScraper(s)
+		u := updater.NewGroupingUpdater(updaterPromPushAddress, reg, scraper, s, updaterWorkerCount)
 		err = u.Run()
 		if err != nil {
 			log.Fatal(err)
