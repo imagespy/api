@@ -484,6 +484,34 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 				{LayerID: 2, Model: store.Model{ID: 5}, PlatformID: 2, Position: 1},
 			},
 		},
+		{
+			name: "When the image exists and a new tag is discovered it adds the tag to the image",
+			imagesInDatabase: []*store.Image{
+				{
+					CreatedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					Digest:        "ABC",
+					Name:          "dev.local/derived-image",
+					ScrapedAt:     time.Date(2018, 10, 26, 4, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+				},
+			},
+			tagsInDatabase: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Name: "2"},
+			},
+			imageToScrape: registryMock.NewImage(
+				"ABC",
+				"dev.local/source-image",
+				[]registry.Platform{
+					registryMock.NewPlatform("amd64", "opq", []string{"l1", "l2"}, "bbb", "linux", time.Date(2018, 10, 24, 1, 0, 0, 0, time.UTC)),
+				},
+				2,
+				"2.0",
+			),
+			expectedTags: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Model: store.Model{ID: 1}, Name: "2"},
+				{Distinction: "majorMinor", ImageID: 1, IsLatest: true, IsTagged: true, Model: store.Model{ID: 2}, Name: "2.0"},
+			},
+		},
 	}
 
 	for _, tc := range testcases {
