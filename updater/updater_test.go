@@ -69,7 +69,9 @@ func TestSimpleUpdater_Run(t *testing.T) {
 		scraper:  scraper,
 		store:    store,
 	}
+	var actualGroups map[string][]string
 	s.dispatchFunc = func(groups map[string][]string) {
+		actualGroups = groups
 		for _, group := range groups {
 			s.processRepository(group)
 		}
@@ -77,4 +79,9 @@ func TestSimpleUpdater_Run(t *testing.T) {
 
 	err := s.Run()
 	assert.NoError(t, err)
+	expectedGroups := map[string][]string{
+		"unit.test/first":  []string{"unit.test/first:1", "unit.test/first:latest"},
+		"unit.test/second": []string{"unit.test/second:v3"},
+	}
+	assert.Equal(t, expectedGroups, actualGroups)
 }
