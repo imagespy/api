@@ -371,7 +371,7 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 			},
 		},
 		{
-			name:          "When a newer version of an image with the same tag but different digest is added it sets the newer version to be the latest version",
+			name:          "When a newer version of an image with the same tag but different digest is added it sets the newer version to be the latest version and marks it as tagged",
 			imageToScrape: registryMock.NewImage("GHI", "dev.local/unittest", []registry.Platform{}, 2, "2"),
 			additionalImagesInRegistry: []registry.Image{
 				registryMock.NewImage("DEF", "dev.local/unittest", []registry.Platform{}, 2, "2"),
@@ -510,6 +510,35 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 			expectedTags: []*store.Tag{
 				{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Model: store.Model{ID: 1}, Name: "2"},
 				{Distinction: "majorMinor", ImageID: 1, IsLatest: true, IsTagged: true, Model: store.Model{ID: 2}, Name: "2.0"},
+			},
+		},
+		{
+			name:          "When the tag of the image is already the latest version it updates the date on which the image last scraped",
+			imageToScrape: registryMock.NewImage("ABC", "dev.local/unittest", []registry.Platform{}, 2, "1"),
+			imagesInDatabase: []*store.Image{
+				{
+					CreatedAt:     time.Date(2018, 10, 25, 1, 0, 0, 0, time.UTC),
+					Digest:        "ABC",
+					Name:          "dev.local/unittest",
+					ScrapedAt:     time.Date(2018, 10, 25, 2, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+				},
+			},
+			tagsInDatabase: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Name: "1"},
+			},
+			expectedImages: []*store.Image{
+				&store.Image{
+					CreatedAt:     time.Date(2018, 10, 25, 1, 0, 0, 0, time.UTC),
+					Digest:        "ABC",
+					Model:         store.Model{ID: 1},
+					Name:          "dev.local/unittest",
+					ScrapedAt:     time.Date(2018, 10, 26, 1, 0, 0, 0, time.UTC),
+					SchemaVersion: 2,
+				},
+			},
+			expectedTags: []*store.Tag{
+				{Distinction: "major", ImageID: 1, IsLatest: true, IsTagged: true, Model: store.Model{ID: 1}, Name: "1"},
 			},
 		},
 	}

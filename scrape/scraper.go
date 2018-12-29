@@ -206,6 +206,12 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 	}
 
 	if currentImage != nil && currentImage.Digest == latestImage.Digest {
+		currentImage.ScrapedAt = a.timeFunc()
+		err = a.store.Images().Update(currentImage)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
