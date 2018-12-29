@@ -8,8 +8,10 @@ import (
 )
 
 type repository struct {
-	name      string
-	regClient *reg.Registry
+	images      []Image
+	initialized bool
+	name        string
+	regClient   *reg.Registry
 }
 
 func (r *repository) FullName() string {
@@ -21,17 +23,21 @@ func (r *repository) Image(digest string, tag string) Image {
 }
 
 func (r *repository) Images() ([]Image, error) {
-	images := []Image{}
+	if r.initialized {
+		return r.images, nil
+	}
+
 	tags, err := r.regClient.Tags(r.name)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, tag := range tags {
-		images = append(images, r.newImage("", tag))
+		r.images = append(r.images, r.newImage("", tag))
 	}
 
-	return images, nil
+	r.initialized = true
+	return r.images, nil
 }
 
 func (r *repository) newImage(digest string, tag string) Image {
