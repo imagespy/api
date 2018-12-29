@@ -407,7 +407,7 @@ func TestAsync_ScrapeLatestImage(t *testing.T) {
 				},
 			},
 			expectedTags: []*store.Tag{
-				{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: true, Model: store.Model{ID: 1}, Name: "2"},
+				{Distinction: "major", ImageID: 1, IsLatest: false, IsTagged: false, Model: store.Model{ID: 1}, Name: "2"},
 				{Distinction: "major", ImageID: 2, IsLatest: true, IsTagged: true, Model: store.Model{ID: 2}, Name: "2"},
 			},
 		},
