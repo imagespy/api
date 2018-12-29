@@ -168,6 +168,7 @@ func (h *imageHandler) getImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	addCacheHeaders(w)
 	w.WriteHeader(http.StatusOK)
 	w.Write(b)
 }
@@ -257,6 +258,7 @@ func (h *imageHandler) getImageLayers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	addCacheHeaders(w)
 	w.WriteHeader(http.StatusOK)
 	w.Write(b)
 }
@@ -333,4 +335,8 @@ func getQueryParamOrNil(r *http.Request, key string) *string {
 func wrapPrometheus(name string, h http.HandlerFunc) http.HandlerFunc {
 	return promhttp.InstrumentHandlerDuration(promReqDuration.MustCurryWith(prometheus.Labels{"handler": name}),
 		promhttp.InstrumentHandlerCounter(promReqCounter, h))
+}
+
+func addCacheHeaders(w http.ResponseWriter) {
+	w.Header().Set("Cache-Control", "public, max-age=900")
 }
