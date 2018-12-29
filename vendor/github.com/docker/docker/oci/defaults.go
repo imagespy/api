@@ -114,7 +114,6 @@ func DefaultLinuxSpec() specs.Spec {
 
 	s.Linux = &specs.Linux{
 		MaskedPaths: []string{
-			"/proc/asound",
 			"/proc/acpi",
 			"/proc/kcore",
 			"/proc/keys",
@@ -126,6 +125,7 @@ func DefaultLinuxSpec() specs.Spec {
 			"/sys/firmware",
 		},
 		ReadonlyPaths: []string{
+			"/proc/asound",
 			"/proc/bus",
 			"/proc/fs",
 			"/proc/irq",

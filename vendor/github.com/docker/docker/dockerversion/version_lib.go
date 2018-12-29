@@ -10,6 +10,8 @@ const (
 	Version               = "library-import"
 	BuildTime             = "library-import"
 	IAmStatic             = "library-import"
+	ContainerdCommitID    = "library-import"
+	RuncCommitID          = "library-import"
 	InitCommitID          = "library-import"
 	PlatformName          = ""
 	ProductName           = ""
