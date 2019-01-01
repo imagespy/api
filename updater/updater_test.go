@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSimpleUpdater_Run(t *testing.T) {
+func TestLatestImageUpdater_Run(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -64,7 +64,7 @@ func TestSimpleUpdater_Run(t *testing.T) {
 		ScrapeLatestImage(rmi3).
 		Return(nil)
 
-	s := &groupingUpdater{
+	s := &latestImageUpdater{
 		registry: rm,
 		scraper:  scraper,
 		store:    store,

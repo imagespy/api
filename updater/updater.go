@@ -1,6 +1,7 @@
 package updater
 
 import (
+	"database/sql"
 	"fmt"
 	"sync"
 	"time"
@@ -15,26 +16,34 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	prometheusNamespace = "imagespy_updater"
+)
+
 var (
 	completionTime = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "imagespy_updater_last_completion_timestamp_seconds",
-		Help: "The timestamp of the last completion of a update run, successful or not.",
+		Namespace: prometheusNamespace,
+		Name:      "last_completion_timestamp_seconds",
+		Help:      "The timestamp of the last completion of a update run, successful or not.",
 	})
 	duration = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "imagespy_updater_duration_seconds",
-		Help: "The duration of the last update run in seconds.",
+		Namespace: prometheusNamespace,
+		Name:      "duration_seconds",
+		Help:      "The duration of the last update run in seconds.",
 	})
 	failCount = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "imagespy_updater_last_scrape_fails",
-		Help: "The number of failed scrapes during the last run.",
-	})
+		Namespace: prometheusNamespace,
+		Name:      "last_scrape_fails",
+		Help:      "The number of failed scrapes during the last run.",
+	},
+	)
 )
 
 type Updater interface {
 	Run() error
 }
 
-type groupingUpdater struct {
+type latestImageUpdater struct {
 	dispatchFunc func(groups map[string][]string)
 	promPusher   *push.Pusher
 	registry     registry.Registry
@@ -43,7 +52,7 @@ type groupingUpdater struct {
 	workerCount  int
 }
 
-func (s *groupingUpdater) Run() error {
+func (s *latestImageUpdater) Run() error {
 	start := time.Now()
 	b := true
 	tags, err := s.store.Tags().List(store.TagListOptions{
@@ -85,7 +94,7 @@ func (s *groupingUpdater) Run() error {
 	return nil
 }
 
-func (s *groupingUpdater) processRepository(images []string) {
+func (s *latestImageUpdater) processRepository(images []string) {
 	repo, err := s.registry.Repository(images[0])
 	if err != nil {
 		log.Errorf("unable to parse repository from image %s: %s", images[0], err)
@@ -110,8 +119,8 @@ func (s *groupingUpdater) processRepository(images []string) {
 	}
 }
 
-func NewGroupingUpdater(pushgatewayURL string, r registry.Registry, scraper scrape.Scraper, s store.Store, wc int) Updater {
-	su := &groupingUpdater{
+func NewLatestImageUpdater(pushgatewayURL string, r registry.Registry, scraper scrape.Scraper, s store.Store, wc int) Updater {
+	su := &latestImageUpdater{
 		registry:    r,
 		scraper:     scraper,
 		store:       s,
@@ -121,7 +130,7 @@ func NewGroupingUpdater(pushgatewayURL string, r registry.Registry, scraper scra
 	if pushgatewayURL != "" {
 		registry := prometheus.NewRegistry()
 		registry.MustRegister(completionTime, duration, failCount)
-		su.promPusher = push.New(pushgatewayURL, "imagespy").Gatherer(registry)
+		su.promPusher = push.New(pushgatewayURL, "imagespy_updater_latest_image").Gatherer(registry)
 	}
 
 	pool := tunny.NewFunc(wc, func(payload interface{}) interface{} {
@@ -157,4 +166,82 @@ func (ap *asyncProcessor) dispatch(groups map[string][]string) {
 	}
 
 	wg.Wait()
+}
+
+type allImagesUpdater struct {
+	db         *sql.DB
+	promPusher *push.Pusher
+	registry   registry.Registry
+	scraper    scrape.Scraper
+}
+
+func (a *allImagesUpdater) Run() error {
+	failCount.Set(0)
+	start := time.Now()
+	rows, err := a.db.Query("select name from imagespy_image group by name")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name string
+		err := rows.Scan(&name)
+		if err != nil {
+			return err
+		}
+
+		log.Debugf("Updating image %s...", name)
+		repository, err := a.registry.Repository(name)
+		if err != nil {
+			return err
+		}
+
+		images, err := repository.Images()
+		if err != nil {
+			return err
+		}
+
+		for _, image := range images {
+			err := a.scraper.ScrapeImage(image)
+			if err != nil {
+				log.Error(err)
+				failCount.Inc()
+				continue
+			}
+
+			err = a.scraper.ScrapeLatestImage(image)
+			if err != nil {
+				log.Error(err)
+				failCount.Inc()
+				continue
+			}
+		}
+	}
+
+	duration.Set(time.Since(start).Seconds())
+	completionTime.SetToCurrentTime()
+	if a.promPusher != nil {
+		err = a.promPusher.Add()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func NewAllImagesUpdater(pushgatewayURL string, db *sql.DB, r registry.Registry, s scrape.Scraper) Updater {
+	var promPusher *push.Pusher
+	if pushgatewayURL != "" {
+		registry := prometheus.NewRegistry()
+		registry.MustRegister(completionTime, duration, failCount)
+		promPusher = push.New(pushgatewayURL, "imagespy_updater_all").Gatherer(registry)
+	}
+
+	return &allImagesUpdater{
+		db:         db,
+		promPusher: promPusher,
+		registry:   r,
+		scraper:    s,
+	}
 }

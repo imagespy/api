@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"database/sql"
+
 	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
 	"github.com/imagespy/api/store/gorm"
@@ -21,7 +23,48 @@ var (
 )
 
 var updaterCmd = &cobra.Command{
-	Use:   "updater",
+	Use: "updater",
+}
+
+var updaterAllCmd = &cobra.Command{
+	Use:   "all",
+	Short: "Updates all images",
+	Run: func(cmd *cobra.Command, args []string) {
+		mustInitLogging(updaterLogLevel)
+		s, err := gorm.New(updaterDBConnection)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		defer s.Close()
+		db, err := sql.Open("mysql", updaterDBConnection)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		reg, err := registry.NewRegistry(
+			updaterRegistryAddress,
+			registry.Opts{
+				Insecure: updaterRegistryInsecure,
+				Password: updaterRegistryPassword,
+				Username: updaterRegistryUsername,
+			},
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		scraper := scrape.NewScraper(s)
+		u := updater.NewAllImagesUpdater(updaterPromPushAddress, db, reg, scraper)
+		err = u.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
+	},
+}
+
+var updaterLatestCmd = &cobra.Command{
+	Use:   "latest",
 	Short: "Updates the latest version of images",
 	Run: func(cmd *cobra.Command, args []string) {
 		mustInitLogging(updaterLogLevel)
@@ -45,7 +88,7 @@ var updaterCmd = &cobra.Command{
 		}
 
 		scraper := scrape.NewScraper(s)
-		u := updater.NewGroupingUpdater(updaterPromPushAddress, reg, scraper, s, updaterWorkerCount)
+		u := updater.NewLatestImageUpdater(updaterPromPushAddress, reg, scraper, s, updaterWorkerCount)
 		err = u.Run()
 		if err != nil {
 			log.Fatal(err)
@@ -54,13 +97,15 @@ var updaterCmd = &cobra.Command{
 }
 
 func init() {
-	updaterCmd.Flags().StringVar(&updaterDBConnection, "db.connection", "", "connection string to connect to the database")
-	updaterCmd.Flags().StringVar(&updaterLogLevel, "log.level", "warn", "log level")
-	updaterCmd.Flags().StringVar(&updaterPromPushAddress, "pushgateway.address", "", "address of the Prometheus Pushgateway")
-	updaterCmd.Flags().StringVar(&updaterRegistryAddress, "registry.address", "docker.io", "address of the docker registry")
-	updaterCmd.Flags().BoolVar(&updaterRegistryInsecure, "registry.insecure", false, "disable certificate validation")
-	updaterCmd.Flags().StringVar(&updaterRegistryPassword, "registry.password", "", "password to authenticate against the docker registry")
-	updaterCmd.Flags().StringVar(&updaterRegistryUsername, "registry.username", "", "username to authenticate against the docker registry")
-	updaterCmd.Flags().IntVar(&updaterWorkerCount, "workers", 1, "number of workers that process updates")
+	updaterCmd.PersistentFlags().StringVar(&updaterDBConnection, "db.connection", "", "connection string to connect to the database")
+	updaterCmd.PersistentFlags().StringVar(&updaterLogLevel, "log.level", "warn", "log level")
+	updaterCmd.PersistentFlags().StringVar(&updaterPromPushAddress, "pushgateway.address", "", "address of the Prometheus Pushgateway")
+	updaterCmd.PersistentFlags().StringVar(&updaterRegistryAddress, "registry.address", "docker.io", "address of the docker registry")
+	updaterCmd.PersistentFlags().BoolVar(&updaterRegistryInsecure, "registry.insecure", false, "disable certificate validation")
+	updaterCmd.PersistentFlags().StringVar(&updaterRegistryPassword, "registry.password", "", "password to authenticate against the docker registry")
+	updaterCmd.PersistentFlags().StringVar(&updaterRegistryUsername, "registry.username", "", "username to authenticate against the docker registry")
+	updaterCmd.PersistentFlags().IntVar(&updaterWorkerCount, "workers", 1, "number of workers that process updates")
+	updaterCmd.AddCommand(updaterAllCmd)
+	updaterCmd.AddCommand(updaterLatestCmd)
 	rootCmd.AddCommand(updaterCmd)
 }
