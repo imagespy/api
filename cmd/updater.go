@@ -42,6 +42,7 @@ var updaterAllCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
+		registry.SetLog(log.StandardLogger())
 		reg, err := registry.NewRegistry(
 			updaterRegistryAddress,
 			registry.Opts{
@@ -75,6 +76,7 @@ var updaterLatestCmd = &cobra.Command{
 
 		defer s.Close()
 
+		registry.SetLog(log.StandardLogger())
 		reg, err := registry.NewRegistry(
 			updaterRegistryAddress,
 			registry.Opts{

@@ -73,7 +73,6 @@ func (h *imageHandler) createImage(w http.ResponseWriter, r *http.Request) {
 		TagName: tagInput,
 	})
 	if err == nil {
-		log.Warn("image to create already exists")
 		w.WriteHeader(http.StatusConflict)
 		return
 	}

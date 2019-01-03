@@ -77,6 +77,7 @@ func (i *image) Tag() (string, error) {
 }
 
 func (i *image) populate() error {
+	log.Debug("Populating image")
 	if i.parsed.Digest.String() == "" {
 		d, err := i.regClient.Digest(i.parsed)
 		if err != nil {

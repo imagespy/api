@@ -2,7 +2,6 @@ package registry
 
 import (
 	"fmt"
-	"log"
 
 	reg "github.com/genuinetools/reg/registry"
 )
@@ -27,6 +26,7 @@ func (r *repository) Images() ([]Image, error) {
 		return r.images, nil
 	}
 
+	log.Debugf("Initializing images in repository %s", r.FullName())
 	tags, err := r.regClient.Tags(r.name)
 	if err != nil {
 		return nil, err
@@ -49,11 +49,7 @@ func (r *repository) newImage(digest string, tag string) Image {
 		suffix = ":" + tag
 	}
 
-	parsed, err := reg.ParseImage(r.name + suffix)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	parsed, _ := reg.ParseImage(r.name + suffix)
 	return &image{
 		parsed:     parsed,
 		regClient:  r.regClient,
