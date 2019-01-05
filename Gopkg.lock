@@ -563,6 +563,7 @@
   input-imports = [
     "github.com/Jeffail/tunny",
     "github.com/docker/distribution",
+    "github.com/docker/distribution/manifest",
     "github.com/docker/distribution/manifest/manifestlist",
     "github.com/docker/distribution/manifest/schema1",
     "github.com/docker/distribution/manifest/schema2",
@@ -579,6 +580,7 @@
     "github.com/gorilla/mux",
     "github.com/jinzhu/gorm",
     "github.com/opencontainers/go-digest",
+    "github.com/pkg/errors",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/client_golang/prometheus/promauto",
     "github.com/prometheus/client_golang/prometheus/promhttp",

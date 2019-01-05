@@ -3,6 +3,7 @@ package cmd
 import (
 	"database/sql"
 
+	spylog "github.com/imagespy/api/log"
 	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
 	"github.com/imagespy/api/store/gorm"
@@ -33,13 +34,13 @@ var updaterAllCmd = &cobra.Command{
 		mustInitLogging(updaterLogLevel)
 		s, err := gorm.New(updaterDBConnection)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(spylog.FormatError(err))
 		}
 
 		defer s.Close()
 		db, err := sql.Open("mysql", updaterDBConnection)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(spylog.FormatError(err))
 		}
 
 		registry.SetLog(log.StandardLogger())
@@ -52,14 +53,14 @@ var updaterAllCmd = &cobra.Command{
 			},
 		)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(spylog.FormatError(err))
 		}
 
 		scraper := scrape.NewScraper(s)
 		u := updater.NewAllImagesUpdater(updaterPromPushAddress, db, reg, scraper)
 		err = u.Run()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(spylog.FormatError(err))
 		}
 	},
 }
@@ -71,7 +72,7 @@ var updaterLatestCmd = &cobra.Command{
 		mustInitLogging(updaterLogLevel)
 		s, err := gorm.New(updaterDBConnection)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(spylog.FormatError(err))
 		}
 
 		defer s.Close()
@@ -86,14 +87,14 @@ var updaterLatestCmd = &cobra.Command{
 			},
 		)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(spylog.FormatError(err))
 		}
 
 		scraper := scrape.NewScraper(s)
 		u := updater.NewLatestImageUpdater(updaterPromPushAddress, reg, scraper, s, updaterWorkerCount)
 		err = u.Run()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(spylog.FormatError(err))
 		}
 	},
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/golang-migrate/migrate"
 	"github.com/imagespy/api/store"
 	gormlib "github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 type sourceImageOfLayer struct {
@@ -540,7 +541,7 @@ func Migrate(connection string, migrationsPath string) error {
 func New(connection string) (store.Store, error) {
 	db, err := gormlib.Open("mysql", connection)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "unable to connect to database")
 	}
 
 	// db.LogMode(true)
