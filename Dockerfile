@@ -1,4 +1,4 @@
-FROM golang:1.11.2
+FROM golang:1.12.0
 ARG VERSION
 WORKDIR /go/src/github.com/imagespy/api/
 COPY . .
