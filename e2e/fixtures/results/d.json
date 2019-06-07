@@ -1,0 +1,16 @@
+{
+  "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+  "latest_image": {
+    "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+    "name": "127.0.0.1:52854/golang",
+    "tags": [
+      "1.12.4",
+      "latest"
+    ]
+  },
+  "name": "127.0.0.1:52854/golang",
+  "tags": [
+    "1.12.4",
+    "latest"
+  ]
+}

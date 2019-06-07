@@ -49,7 +49,7 @@ func (r *repository) newImage(digest string, tag string) Image {
 		suffix = ":" + tag
 	}
 
-	parsed, _ := reg.ParseImage(r.name + suffix)
+	parsed, _ := reg.ParseImage(r.regClient.Domain + "/" + r.name + suffix)
 	return &image{
 		parsed:     parsed,
 		regClient:  r.regClient,

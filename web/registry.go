@@ -24,14 +24,16 @@ type registryHandler struct {
 }
 
 func (rh *registryHandler) registryEvent(w http.ResponseWriter, r *http.Request) {
+	log.Debug("processing docker registry event")
 	if r.Header.Get("Content-Type") != notifications.EventsMediaType {
+		log.Debug("docker registry event contains unsupported content type")
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Errorf("Unable to read registry event paylod: %s", err)
+		log.Errorf("reading registry event payload: %s", err)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -40,7 +42,7 @@ func (rh *registryHandler) registryEvent(w http.ResponseWriter, r *http.Request)
 	envelope := &notifications.Envelope{}
 	err = json.Unmarshal(payload, envelope)
 	if err != nil {
-		log.Errorf("Unable to unmarshal registry event paylod: %s", err)
+		log.Errorf("unmarshalling registry event payload: %s", err)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -89,4 +91,6 @@ func (rh *registryHandler) registryEvent(w http.ResponseWriter, r *http.Request)
 			}()
 		}
 	}
+
+	w.WriteHeader(http.StatusOK)
 }

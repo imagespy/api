@@ -1,0 +1,35 @@
+POST /dockerRegistry/event HTTP/1.1
+User-Agent: e2e
+Content-Length: 1079
+Content-Type: application/vnd.docker.distribution.events.v1+json
+
+{
+  "events": [
+    {
+      "id": "4542b8f5-cea1-4cd5-95eb-27d69029e5a9",
+      "timestamp": "2019-06-06T10:26:04.5825108Z",
+      "action": "pull",
+      "target": {
+        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+        "size": 1796,
+        "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+        "length": 1796,
+        "repository": "golang",
+        "url": "https://127.0.0.1:52854/v2/golang/manifests/sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+        "tag": "1.12.4"
+      },
+      "request": {
+        "id": "1730a1e6-2b87-46cb-8f11-b95a344a8414",
+        "addr": "172.18.0.1:35646",
+        "host": "127.0.0.1:52854",
+        "method": "GET",
+        "useragent": "docker/18.09.2 go/go1.10.6 git-commit/6247962 kernel/4.9.125-linuxkit os/linux arch/amd64 UpstreamClient(Docker-Client/18.09.2 \\(darwin\\))"
+      },
+      "actor": {},
+      "source": {
+        "addr": "5d0ccb231942:5000",
+        "instanceID": "5e102ed7-0803-42b1-b055-11457aa6955d"
+      }
+    }
+  ]
+}

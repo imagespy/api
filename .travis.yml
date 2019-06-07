@@ -2,16 +2,21 @@ language: go
 go:
   - "1.12"
 
+dist: xenial
+
 services:
   - docker
 
 before_install:
+  - make dev_registry
   - make dev_database
   - sleep 30
 
 script:
   - make test
-  - make test_scrape
+  - make build
+  - make setup_e2e
+  - make test_e2e
 
 before_deploy:
   - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin

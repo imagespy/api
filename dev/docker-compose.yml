@@ -3,6 +3,7 @@
 version: '3'
 services:
   database:
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_DATABASE: imagespy
       MYSQL_ROOT_PASSWORD: root
@@ -11,7 +12,9 @@ services:
     - "33306:3306"
 
   registry:
-    image: registry:2.6.2
+    environment:
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    image: registry:2.7.1
     ports:
     - "52854:5000"
     volumes:

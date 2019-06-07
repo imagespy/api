@@ -29,11 +29,12 @@ var serverCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mustInitLogging(serverLogLevel)
 		if serverMigrationsEnabled {
-			log.Info("executing migrations...")
+			log.Info("executing migrations")
 			err := gorm.Migrate(serverDBConnection, serverMigrationsPath)
 			if err != nil {
 				log.Fatalf("error executing migrations: %s", err)
 			}
+			log.Info("migrations executed")
 		}
 
 		s, err := gorm.New(serverDBConnection)

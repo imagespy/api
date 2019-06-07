@@ -17,13 +17,13 @@ health:
     enabled: true
     interval: 10s
     threshold: 3
-notifications:
-  endpoints:
-    - name: imagespy
-      disabled: false
-      url: http://docker.for.mac.localhost:3001/event
-      timeout: 500
-      threshold: 5
-      backoff: 1000
-      ignoredmediatypes:
-        - application/octet-stream
+# notifications:
+#   endpoints:
+#     - name: imagespy
+#       disabled: false
+#       url: http://127.0.0.1:3001/dockerRegistry/event
+#       timeout: 500ms
+#       threshold: 5
+#       backoff: 5s
+#       ignoredmediatypes:
+#         - application/octet-stream

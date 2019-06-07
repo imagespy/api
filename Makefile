@@ -34,8 +34,9 @@ generate_mocks:
 test:
 	go test -v ./...
 
-test_scrape:
-	RUN_SCRAPE_TESTS=1 go test -v ./scrape
+test_e2e:
+	go get github.com/DATA-DOG/godog/cmd/godog
+	cd ./e2e && godog
 
 build:
 	go build -ldflags="-X github.com/imagespy/api/version.Version=${VERSION}"
@@ -45,3 +46,12 @@ build_docker:
 
 release_docker: build_docker
 	docker push imagespy/api:${VERSION}
+
+setup_e2e:
+	docker pull golang@sha256:b35aec8702783621fbc0cd08cbc6a8fa8ade8b7233890f3a059645f3b2cfa93f
+	docker tag golang@sha256:b35aec8702783621fbc0cd08cbc6a8fa8ade8b7233890f3a059645f3b2cfa93f 127.0.0.1:52854/golang:1.12.3
+	docker pull golang@sha256:83e8267be041b3ddf6a5792c7e464528408f75c446745642db08cfe4e8d58d18
+	docker tag golang@sha256:83e8267be041b3ddf6a5792c7e464528408f75c446745642db08cfe4e8d58d18 127.0.0.1:52854/golang:1.12.4
+	docker tag golang@sha256:83e8267be041b3ddf6a5792c7e464528408f75c446745642db08cfe4e8d58d18 127.0.0.1:52854/golang:latest
+	docker pull debian@sha256:65e581e00438a33ccbb0bd2d74f03de99d8bec8abca982e906a055f828bc5b57
+	docker tag debian@sha256:65e581e00438a33ccbb0bd2d74f03de99d8bec8abca982e906a055f828bc5b57 127.0.0.1:52854/debian:stretch-20190326

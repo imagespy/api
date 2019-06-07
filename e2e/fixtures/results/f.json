@@ -1,0 +1,135 @@
+[
+  {
+    "digest": "sha256:e79bb959ec00faf01da52437df4fad4537ec669f60455a38ad583ec2b8f00498",
+    "source_images": [
+      {
+        "digest": "sha256:9a1b6b1073bf12428a55c54e6e3bb001946afbcf49b7fea6a02d345790356998",
+        "latest_image": {
+          "digest": "sha256:9a1b6b1073bf12428a55c54e6e3bb001946afbcf49b7fea6a02d345790356998",
+          "name": "127.0.0.1:52854/debian",
+          "tags": [
+            "stretch-20190326"
+          ]
+        },
+        "name": "127.0.0.1:52854/debian",
+        "tags": [
+          "stretch-20190326"
+        ]
+      }
+    ]
+  },
+  {
+    "digest": "sha256:d4b7902036fe0cefdfe9ccf0404fe13322ecbd552f132be73d3e840f95538838",
+    "source_images": [
+      {
+        "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+        "latest_image": {
+          "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+          "name": "127.0.0.1:52854/golang",
+          "tags": [
+            "latest"
+          ]
+        },
+        "name": "127.0.0.1:52854/golang",
+        "tags": [
+          "latest"
+        ]
+      }
+    ]
+  },
+  {
+    "digest": "sha256:1b2a72d4e03052566e99130108071fc4eca4942c62923e3e5cf19666a23088ef",
+    "source_images": [
+      {
+        "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+        "latest_image": {
+          "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+          "name": "127.0.0.1:52854/golang",
+          "tags": [
+            "latest"
+          ]
+        },
+        "name": "127.0.0.1:52854/golang",
+        "tags": [
+          "latest"
+        ]
+      }
+    ]
+  },
+  {
+    "digest": "sha256:d54db43011fd116b8cb6d9e49e268cee1fa6212f152b30cbfa7f3c4c684427c3",
+    "source_images": [
+      {
+        "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+        "latest_image": {
+          "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+          "name": "127.0.0.1:52854/golang",
+          "tags": [
+            "latest"
+          ]
+        },
+        "name": "127.0.0.1:52854/golang",
+        "tags": [
+          "latest"
+        ]
+      }
+    ]
+  },
+  {
+    "digest": "sha256:963c818ebafc12959707fcabfc8952ba84ad92514041f7b6ec66ddfb5702141f",
+    "source_images": [
+      {
+        "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+        "latest_image": {
+          "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+          "name": "127.0.0.1:52854/golang",
+          "tags": [
+            "latest"
+          ]
+        },
+        "name": "127.0.0.1:52854/golang",
+        "tags": [
+          "latest"
+        ]
+      }
+    ]
+  },
+  {
+    "digest": "sha256:9eee6e7073aaa72d34ba739d309428b29acca211466a86a16f42085c150db8c5",
+    "source_images": [
+      {
+        "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+        "latest_image": {
+          "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+          "name": "127.0.0.1:52854/golang",
+          "tags": [
+            "latest"
+          ]
+        },
+        "name": "127.0.0.1:52854/golang",
+        "tags": [
+          "latest"
+        ]
+      }
+    ]
+  },
+  {
+    "digest": "sha256:83e75b35417bea64f062ec5031006a5910c90d20b9db352cdb4a8b00cc3a195f",
+    "source_images": [
+      {
+        "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+        "latest_image": {
+          "digest": "sha256:85032fa900cd979127f344c594f714b59e147c6ecbab83bd1ed0ad3ca2e64441",
+          "name": "127.0.0.1:52854/golang",
+          "tags": [
+            "latest"
+          ]
+        },
+        "name": "127.0.0.1:52854/golang",
+        "tags": [
+          "latest"
+        ]
+      }
+    ]
+  }
+]
