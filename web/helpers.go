@@ -15,10 +15,15 @@ func findSourceImageOfLayer(sourceImageID int, s store.Store) (*store.Image, []*
 		return nil, nil, nil, nil, err
 	}
 
-	sourceImageTags, err := tagsClient.List(store.TagListOptions{ImageID: sourceImage.ID})
+	isTagged := true
+	sourceImageTags, err := tagsClient.List(store.TagListOptions{ImageID: sourceImage.ID, IsTagged: &isTagged})
 	if err != nil {
 		log.Errorf("reading tags of source image '%d': %s", sourceImageID, err)
 		return nil, nil, nil, nil, err
+	}
+
+	if len(sourceImageTags) == 0 {
+		return nil, nil, nil, nil, nil
 	}
 
 	latestImage, latestTags, err := findLatestImageOfImage(sourceImage, sourceImageTags, s)

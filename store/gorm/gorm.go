@@ -506,6 +506,15 @@ func (g *gormTag) List(o store.TagListOptions) ([]*store.Tag, error) {
 		}
 	}
 
+	if o.IsTagged != nil {
+		whereQuery = append(whereQuery, "imagespy_tag.is_tagged = ?")
+		if *o.IsTagged {
+			whereValues = append(whereValues, 1)
+		} else {
+			whereValues = append(whereValues, 0)
+		}
+	}
+
 	result := g.db.Where(strings.Join(whereQuery, " AND "), whereValues...).Find(&tags)
 	if result.Error != nil {
 		return nil, result.Error

@@ -111,4 +111,5 @@ type TagGetOptions struct {
 type TagListOptions struct {
 	ImageID  int
 	IsLatest *bool
+	IsTagged *bool
 }

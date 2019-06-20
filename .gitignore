@@ -3,3 +3,4 @@ migrate
 !migrate/
 .plan
 ttt
+.dev/

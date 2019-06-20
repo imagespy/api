@@ -242,6 +242,10 @@ func (h *imageHandler) getImageLayers(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			if sourceImage == nil {
+				continue
+			}
+
 			imageSerialization := convertImageToResult(sourceImage, sourceImageTags, latestImage, latestTags)
 			serialization.SourceImages = append(serialization.SourceImages, imageSerialization)
 		}
