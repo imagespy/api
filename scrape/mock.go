@@ -35,6 +35,7 @@ func (m *MockScraper) EXPECT() *MockScraperMockRecorder {
 
 // ScrapeImage mocks base method
 func (m *MockScraper) ScrapeImage(i registry.Image) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ScrapeImage", i)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -42,11 +43,13 @@ func (m *MockScraper) ScrapeImage(i registry.Image) error {
 
 // ScrapeImage indicates an expected call of ScrapeImage
 func (mr *MockScraperMockRecorder) ScrapeImage(i interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScrapeImage", reflect.TypeOf((*MockScraper)(nil).ScrapeImage), i)
 }
 
 // ScrapeLatestImage mocks base method
 func (m *MockScraper) ScrapeLatestImage(i registry.Image) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ScrapeLatestImage", i)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -54,5 +57,6 @@ func (m *MockScraper) ScrapeLatestImage(i registry.Image) error {
 
 // ScrapeLatestImage indicates an expected call of ScrapeLatestImage
 func (mr *MockScraperMockRecorder) ScrapeLatestImage(i interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScrapeLatestImage", reflect.TypeOf((*MockScraper)(nil).ScrapeLatestImage), i)
 }

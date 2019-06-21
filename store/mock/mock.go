@@ -35,6 +35,7 @@ func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 
 // Close mocks base method
 func (m *MockStore) Close() error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Close")
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -42,11 +43,13 @@ func (m *MockStore) Close() error {
 
 // Close indicates an expected call of Close
 func (mr *MockStoreMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStore)(nil).Close))
 }
 
 // Images mocks base method
 func (m *MockStore) Images() store.ImageStore {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Images")
 	ret0, _ := ret[0].(store.ImageStore)
 	return ret0
@@ -54,11 +57,13 @@ func (m *MockStore) Images() store.ImageStore {
 
 // Images indicates an expected call of Images
 func (mr *MockStoreMockRecorder) Images() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Images", reflect.TypeOf((*MockStore)(nil).Images))
 }
 
 // Layers mocks base method
 func (m *MockStore) Layers() store.LayerStore {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Layers")
 	ret0, _ := ret[0].(store.LayerStore)
 	return ret0
@@ -66,11 +71,13 @@ func (m *MockStore) Layers() store.LayerStore {
 
 // Layers indicates an expected call of Layers
 func (mr *MockStoreMockRecorder) Layers() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Layers", reflect.TypeOf((*MockStore)(nil).Layers))
 }
 
 // LayerPositions mocks base method
 func (m *MockStore) LayerPositions() store.LayerPositionStore {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LayerPositions")
 	ret0, _ := ret[0].(store.LayerPositionStore)
 	return ret0
@@ -78,11 +85,13 @@ func (m *MockStore) LayerPositions() store.LayerPositionStore {
 
 // LayerPositions indicates an expected call of LayerPositions
 func (mr *MockStoreMockRecorder) LayerPositions() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerPositions", reflect.TypeOf((*MockStore)(nil).LayerPositions))
 }
 
 // Platforms mocks base method
 func (m *MockStore) Platforms() store.PlatformStore {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Platforms")
 	ret0, _ := ret[0].(store.PlatformStore)
 	return ret0
@@ -90,11 +99,13 @@ func (m *MockStore) Platforms() store.PlatformStore {
 
 // Platforms indicates an expected call of Platforms
 func (mr *MockStoreMockRecorder) Platforms() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Platforms", reflect.TypeOf((*MockStore)(nil).Platforms))
 }
 
 // Tags mocks base method
 func (m *MockStore) Tags() store.TagStore {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Tags")
 	ret0, _ := ret[0].(store.TagStore)
 	return ret0
@@ -102,11 +113,13 @@ func (m *MockStore) Tags() store.TagStore {
 
 // Tags indicates an expected call of Tags
 func (mr *MockStoreMockRecorder) Tags() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Tags", reflect.TypeOf((*MockStore)(nil).Tags))
 }
 
 // Transaction mocks base method
 func (m *MockStore) Transaction() (store.StoreTransaction, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Transaction")
 	ret0, _ := ret[0].(store.StoreTransaction)
 	ret1, _ := ret[1].(error)
@@ -115,6 +128,7 @@ func (m *MockStore) Transaction() (store.StoreTransaction, error) {
 
 // Transaction indicates an expected call of Transaction
 func (mr *MockStoreMockRecorder) Transaction() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Transaction", reflect.TypeOf((*MockStore)(nil).Transaction))
 }
 
@@ -143,6 +157,7 @@ func (m *MockStoreTransaction) EXPECT() *MockStoreTransactionMockRecorder {
 
 // Close mocks base method
 func (m *MockStoreTransaction) Close() error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Close")
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -150,11 +165,13 @@ func (m *MockStoreTransaction) Close() error {
 
 // Close indicates an expected call of Close
 func (mr *MockStoreTransactionMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStoreTransaction)(nil).Close))
 }
 
 // Images mocks base method
 func (m *MockStoreTransaction) Images() store.ImageStore {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Images")
 	ret0, _ := ret[0].(store.ImageStore)
 	return ret0
@@ -162,11 +179,13 @@ func (m *MockStoreTransaction) Images() store.ImageStore {
 
 // Images indicates an expected call of Images
 func (mr *MockStoreTransactionMockRecorder) Images() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Images", reflect.TypeOf((*MockStoreTransaction)(nil).Images))
 }
 
 // Layers mocks base method
 func (m *MockStoreTransaction) Layers() store.LayerStore {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Layers")
 	ret0, _ := ret[0].(store.LayerStore)
 	return ret0
@@ -174,11 +193,13 @@ func (m *MockStoreTransaction) Layers() store.LayerStore {
 
 // Layers indicates an expected call of Layers
 func (mr *MockStoreTransactionMockRecorder) Layers() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Layers", reflect.TypeOf((*MockStoreTransaction)(nil).Layers))
 }
 
 // LayerPositions mocks base method
 func (m *MockStoreTransaction) LayerPositions() store.LayerPositionStore {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LayerPositions")
 	ret0, _ := ret[0].(store.LayerPositionStore)
 	return ret0
@@ -186,11 +207,13 @@ func (m *MockStoreTransaction) LayerPositions() store.LayerPositionStore {
 
 // LayerPositions indicates an expected call of LayerPositions
 func (mr *MockStoreTransactionMockRecorder) LayerPositions() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerPositions", reflect.TypeOf((*MockStoreTransaction)(nil).LayerPositions))
 }
 
 // Platforms mocks base method
 func (m *MockStoreTransaction) Platforms() store.PlatformStore {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Platforms")
 	ret0, _ := ret[0].(store.PlatformStore)
 	return ret0
@@ -198,11 +221,13 @@ func (m *MockStoreTransaction) Platforms() store.PlatformStore {
 
 // Platforms indicates an expected call of Platforms
 func (mr *MockStoreTransactionMockRecorder) Platforms() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Platforms", reflect.TypeOf((*MockStoreTransaction)(nil).Platforms))
 }
 
 // Tags mocks base method
 func (m *MockStoreTransaction) Tags() store.TagStore {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Tags")
 	ret0, _ := ret[0].(store.TagStore)
 	return ret0
@@ -210,11 +235,13 @@ func (m *MockStoreTransaction) Tags() store.TagStore {
 
 // Tags indicates an expected call of Tags
 func (mr *MockStoreTransactionMockRecorder) Tags() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Tags", reflect.TypeOf((*MockStoreTransaction)(nil).Tags))
 }
 
 // Transaction mocks base method
 func (m *MockStoreTransaction) Transaction() (store.StoreTransaction, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Transaction")
 	ret0, _ := ret[0].(store.StoreTransaction)
 	ret1, _ := ret[1].(error)
@@ -223,11 +250,13 @@ func (m *MockStoreTransaction) Transaction() (store.StoreTransaction, error) {
 
 // Transaction indicates an expected call of Transaction
 func (mr *MockStoreTransactionMockRecorder) Transaction() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Transaction", reflect.TypeOf((*MockStoreTransaction)(nil).Transaction))
 }
 
 // Commit mocks base method
 func (m *MockStoreTransaction) Commit() error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Commit")
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -235,11 +264,13 @@ func (m *MockStoreTransaction) Commit() error {
 
 // Commit indicates an expected call of Commit
 func (mr *MockStoreTransactionMockRecorder) Commit() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Commit", reflect.TypeOf((*MockStoreTransaction)(nil).Commit))
 }
 
 // Rollback mocks base method
 func (m *MockStoreTransaction) Rollback() error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Rollback")
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -247,6 +278,7 @@ func (m *MockStoreTransaction) Rollback() error {
 
 // Rollback indicates an expected call of Rollback
 func (mr *MockStoreTransactionMockRecorder) Rollback() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rollback", reflect.TypeOf((*MockStoreTransaction)(nil).Rollback))
 }
 
@@ -275,6 +307,7 @@ func (m *MockImageStore) EXPECT() *MockImageStoreMockRecorder {
 
 // Create mocks base method
 func (m *MockImageStore) Create(i *store.Image) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", i)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -282,11 +315,28 @@ func (m *MockImageStore) Create(i *store.Image) error {
 
 // Create indicates an expected call of Create
 func (mr *MockImageStoreMockRecorder) Create(i interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockImageStore)(nil).Create), i)
+}
+
+// FindByLayerIDHavingLayerCountGreaterThan mocks base method
+func (m *MockImageStore) FindByLayerIDHavingLayerCountGreaterThan(layerID, count int) ([]*store.Image, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindByLayerIDHavingLayerCountGreaterThan", layerID, count)
+	ret0, _ := ret[0].([]*store.Image)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindByLayerIDHavingLayerCountGreaterThan indicates an expected call of FindByLayerIDHavingLayerCountGreaterThan
+func (mr *MockImageStoreMockRecorder) FindByLayerIDHavingLayerCountGreaterThan(layerID, count interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByLayerIDHavingLayerCountGreaterThan", reflect.TypeOf((*MockImageStore)(nil).FindByLayerIDHavingLayerCountGreaterThan), layerID, count)
 }
 
 // Get mocks base method
 func (m *MockImageStore) Get(o store.ImageGetOptions) (*store.Image, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", o)
 	ret0, _ := ret[0].(*store.Image)
 	ret1, _ := ret[1].(error)
@@ -295,11 +345,13 @@ func (m *MockImageStore) Get(o store.ImageGetOptions) (*store.Image, error) {
 
 // Get indicates an expected call of Get
 func (mr *MockImageStoreMockRecorder) Get(o interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockImageStore)(nil).Get), o)
 }
 
 // List mocks base method
 func (m *MockImageStore) List(o store.ImageListOptions) ([]*store.Image, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", o)
 	ret0, _ := ret[0].([]*store.Image)
 	ret1, _ := ret[1].(error)
@@ -308,11 +360,13 @@ func (m *MockImageStore) List(o store.ImageListOptions) ([]*store.Image, error) 
 
 // List indicates an expected call of List
 func (mr *MockImageStoreMockRecorder) List(o interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockImageStore)(nil).List), o)
 }
 
 // Update mocks base method
 func (m *MockImageStore) Update(i *store.Image) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", i)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -320,6 +374,7 @@ func (m *MockImageStore) Update(i *store.Image) error {
 
 // Update indicates an expected call of Update
 func (mr *MockImageStoreMockRecorder) Update(i interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockImageStore)(nil).Update), i)
 }
 
@@ -348,6 +403,7 @@ func (m *MockLayerStore) EXPECT() *MockLayerStoreMockRecorder {
 
 // Create mocks base method
 func (m *MockLayerStore) Create(l *store.Layer) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", l)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -355,11 +411,13 @@ func (m *MockLayerStore) Create(l *store.Layer) error {
 
 // Create indicates an expected call of Create
 func (mr *MockLayerStoreMockRecorder) Create(l interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockLayerStore)(nil).Create), l)
 }
 
 // Get mocks base method
 func (m *MockLayerStore) Get(o store.LayerGetOptions) (*store.Layer, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", o)
 	ret0, _ := ret[0].(*store.Layer)
 	ret1, _ := ret[1].(error)
@@ -368,11 +426,13 @@ func (m *MockLayerStore) Get(o store.LayerGetOptions) (*store.Layer, error) {
 
 // Get indicates an expected call of Get
 func (mr *MockLayerStoreMockRecorder) Get(o interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockLayerStore)(nil).Get), o)
 }
 
 // List mocks base method
 func (m *MockLayerStore) List(o store.LayerListOptions) ([]*store.Layer, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", o)
 	ret0, _ := ret[0].([]*store.Layer)
 	ret1, _ := ret[1].(error)
@@ -381,11 +441,13 @@ func (m *MockLayerStore) List(o store.LayerListOptions) ([]*store.Layer, error) 
 
 // List indicates an expected call of List
 func (mr *MockLayerStoreMockRecorder) List(o interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockLayerStore)(nil).List), o)
 }
 
 // Update mocks base method
 func (m *MockLayerStore) Update(l *store.Layer) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", l)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -393,6 +455,7 @@ func (m *MockLayerStore) Update(l *store.Layer) error {
 
 // Update indicates an expected call of Update
 func (mr *MockLayerStoreMockRecorder) Update(l interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockLayerStore)(nil).Update), l)
 }
 
@@ -421,6 +484,7 @@ func (m *MockLayerPositionStore) EXPECT() *MockLayerPositionStoreMockRecorder {
 
 // Create mocks base method
 func (m *MockLayerPositionStore) Create(arg0 *store.LayerPosition) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -428,11 +492,13 @@ func (m *MockLayerPositionStore) Create(arg0 *store.LayerPosition) error {
 
 // Create indicates an expected call of Create
 func (mr *MockLayerPositionStoreMockRecorder) Create(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockLayerPositionStore)(nil).Create), arg0)
 }
 
 // List mocks base method
 func (m *MockLayerPositionStore) List(o store.LayerPositionListOptions) ([]*store.LayerPosition, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", o)
 	ret0, _ := ret[0].([]*store.LayerPosition)
 	ret1, _ := ret[1].(error)
@@ -441,6 +507,7 @@ func (m *MockLayerPositionStore) List(o store.LayerPositionListOptions) ([]*stor
 
 // List indicates an expected call of List
 func (mr *MockLayerPositionStoreMockRecorder) List(o interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockLayerPositionStore)(nil).List), o)
 }
 
@@ -469,6 +536,7 @@ func (m *MockPlatformStore) EXPECT() *MockPlatformStoreMockRecorder {
 
 // Create mocks base method
 func (m *MockPlatformStore) Create(arg0 *store.Platform) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -476,11 +544,13 @@ func (m *MockPlatformStore) Create(arg0 *store.Platform) error {
 
 // Create indicates an expected call of Create
 func (mr *MockPlatformStoreMockRecorder) Create(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockPlatformStore)(nil).Create), arg0)
 }
 
 // Get mocks base method
 func (m *MockPlatformStore) Get(o store.PlatformGetOptions) (*store.Platform, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", o)
 	ret0, _ := ret[0].(*store.Platform)
 	ret1, _ := ret[1].(error)
@@ -489,11 +559,13 @@ func (m *MockPlatformStore) Get(o store.PlatformGetOptions) (*store.Platform, er
 
 // Get indicates an expected call of Get
 func (mr *MockPlatformStoreMockRecorder) Get(o interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockPlatformStore)(nil).Get), o)
 }
 
 // List mocks base method
 func (m *MockPlatformStore) List(o store.PlatformListOptions) ([]*store.Platform, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", o)
 	ret0, _ := ret[0].([]*store.Platform)
 	ret1, _ := ret[1].(error)
@@ -502,6 +574,7 @@ func (m *MockPlatformStore) List(o store.PlatformListOptions) ([]*store.Platform
 
 // List indicates an expected call of List
 func (mr *MockPlatformStoreMockRecorder) List(o interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockPlatformStore)(nil).List), o)
 }
 
@@ -530,6 +603,7 @@ func (m *MockTagStore) EXPECT() *MockTagStoreMockRecorder {
 
 // Create mocks base method
 func (m *MockTagStore) Create(arg0 *store.Tag) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -537,11 +611,13 @@ func (m *MockTagStore) Create(arg0 *store.Tag) error {
 
 // Create indicates an expected call of Create
 func (mr *MockTagStoreMockRecorder) Create(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockTagStore)(nil).Create), arg0)
 }
 
 // Get mocks base method
 func (m *MockTagStore) Get(o store.TagGetOptions) (*store.Tag, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", o)
 	ret0, _ := ret[0].(*store.Tag)
 	ret1, _ := ret[1].(error)
@@ -550,11 +626,13 @@ func (m *MockTagStore) Get(o store.TagGetOptions) (*store.Tag, error) {
 
 // Get indicates an expected call of Get
 func (mr *MockTagStoreMockRecorder) Get(o interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTagStore)(nil).Get), o)
 }
 
 // List mocks base method
 func (m *MockTagStore) List(o store.TagListOptions) ([]*store.Tag, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", o)
 	ret0, _ := ret[0].([]*store.Tag)
 	ret1, _ := ret[1].(error)
@@ -563,11 +641,13 @@ func (m *MockTagStore) List(o store.TagListOptions) ([]*store.Tag, error) {
 
 // List indicates an expected call of List
 func (mr *MockTagStoreMockRecorder) List(o interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockTagStore)(nil).List), o)
 }
 
 // Update mocks base method
 func (m *MockTagStore) Update(arg0 *store.Tag) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -575,5 +655,6 @@ func (m *MockTagStore) Update(arg0 *store.Tag) error {
 
 // Update indicates an expected call of Update
 func (mr *MockTagStoreMockRecorder) Update(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockTagStore)(nil).Update), arg0)
 }
