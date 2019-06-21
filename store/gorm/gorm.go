@@ -184,6 +184,33 @@ func (gi *gormImage) Update(i *store.Image) error {
 	return nil
 }
 
+// FindByLayerIDHavingLayerCountGreaterThan finds all images which have the layer identified by the given ID and which total number of layers is greater than the given count.
+func (gi *gormImage) FindByLayerIDHavingLayerCountGreaterThan(layerID, count int) ([]*store.Image, error) {
+	rows, err := gi.db.Raw("select i.* from imagespy_layerofplatform as lop inner join imagespy_platform as p on lop.platform_id = p.id inner join imagespy_image as i on i.id = p.image_id where lop.platform_id in (select platform_id from imagespy_layerofplatform where layer_id = ?) group by platform_id having count(lop.id) > ? order by i.name", layerID, count).
+		Rows()
+	if err != nil {
+		if rows != nil {
+			rows.Close()
+		}
+		return nil, err
+	}
+
+	images := []*store.Image{}
+	for rows.Next() {
+		var result store.Image
+		err := gi.db.ScanRows(rows, &result)
+		if err != nil {
+			rows.Close()
+			return nil, nil
+		}
+
+		images = append(images, &result)
+	}
+
+	rows.Close()
+	return images, nil
+}
+
 type gormLayer struct {
 	db *gormlib.DB
 }

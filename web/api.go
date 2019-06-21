@@ -266,6 +266,115 @@ func (h *imageHandler) getImageLayers(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
+func (h *imageHandler) getChildren(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	imageID := vars["name"]
+	address, path, tagInput, _, err := registry.ParseImage(imageID)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	image, err := h.Store.Images().Get(store.ImageGetOptions{
+		Name:    address + "/" + path,
+		TagName: tagInput,
+	})
+	if err != nil {
+		if err == store.ErrDoesNotExist {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		log.Errorf("imageHandler.getChildren: reading image: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	platform, err := h.Store.Platforms().Get(store.PlatformGetOptions{
+		Architecture: getQueryParam(r, "arch", "amd64"),
+		ImageID:      image.ID,
+		OS:           getQueryParam(r, "os", "linux"),
+		OSVersion:    getQueryParamOrNil(r, "os_version"),
+		Variant:      getQueryParamOrNil(r, "variant"),
+	})
+	if err != nil {
+		if err == store.ErrDoesNotExist {
+			log.Info("imageHandler.getChildren: platform does not exist")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		log.Errorf("imageHandler.getChildren: reading platform of image '%d': %s", image.ID, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	layerPositions, err := h.Store.LayerPositions().List(store.LayerPositionListOptions{
+		PlatformID: platform.ID,
+	})
+	if err != nil {
+		log.Errorf("imageHandler.getChildren: reading layer positions of platform '%d' image '%d': %s", platform.ID, image.ID, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	lastLayerPosition := &store.LayerPosition{}
+	for _, lp := range layerPositions {
+		if lp.Position >= lastLayerPosition.Position {
+			lastLayerPosition = lp
+		}
+	}
+
+	childImages, err := h.Store.Images().FindByLayerIDHavingLayerCountGreaterThan(lastLayerPosition.LayerID, len(layerPositions))
+	if err != nil {
+		log.Errorf("imageHandler.getChildren: finding images by layer id '%d' image '%d': %s", lastLayerPosition.LayerID, image.ID, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	apiResult := []*latestImageSerialize{}
+	for _, ci := range childImages {
+		tagged := true
+		tags, err := h.Store.Tags().List(store.TagListOptions{
+			ImageID:  ci.ID,
+			IsTagged: &tagged,
+		})
+		if err != nil {
+			log.Errorf("imageHandler.getChildren: finding images tags for image '%d': %s", ci.ID, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if len(tags) == 0 {
+			continue
+		}
+
+		r := &latestImageSerialize{
+			Digest: ci.Digest,
+			Name:   ci.Name,
+			Tags:   []string{},
+		}
+		for _, t := range tags {
+			r.Tags = append(r.Tags, t.Name)
+		}
+
+		apiResult = append(apiResult, r)
+	}
+
+	b, err := h.serializer(apiResult)
+	if err != nil {
+		log.Errorf("imageHandler.getChildren: serializing result: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	addCacheHeaders(w)
+	w.WriteHeader(http.StatusOK)
+	w.Write(b)
+}
+
 func convertImageToResult(image *store.Image, tags []*store.Tag, latestImage *store.Image, latestTags []*store.Tag) *imageSerialize {
 	imageSerialized := &imageSerialize{
 		Digest: image.Digest,
@@ -308,6 +417,7 @@ func Init(registry registry.Registry, scraper scrape.Scraper, store store.Store)
 	}
 
 	r := mux.NewRouter()
+	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9\/\.\-:_]+}/children`, wrapPrometheus("/v2/images/{name}/children", h.getChildren)).Methods("GET")
 	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9\/\.\-:_]+}/layers`, wrapPrometheus("/v2/images/{name}/layers", h.getImageLayers)).Methods("GET")
 	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9\/\.\-:_]+}`, wrapPrometheus("/v2/images/{name}", h.createImage)).Methods("POST")
 	r.HandleFunc(`/v2/images/{name:[a-zA-Z0-9\/\.\-:_]+}`, wrapPrometheus("/v2/images/{name}", h.getImage)).Methods("GET")

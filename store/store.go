@@ -29,6 +29,7 @@ type StoreTransaction interface {
 // ImageStore allows creating, manipulating and reading images.
 type ImageStore interface {
 	Create(i *Image) error
+	FindByLayerIDHavingLayerCountGreaterThan(layerID, count int) ([]*Image, error)
 	Get(o ImageGetOptions) (*Image, error)
 	List(o ImageListOptions) ([]*Image, error)
 	Update(i *Image) error
