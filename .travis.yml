@@ -13,10 +13,10 @@ before_install:
   - sleep 30
 
 script:
-  - make test
-  - make build
-  - make setup_e2e
-  - make test_e2e
+  - make test || travis_terminate 1
+  - make build || travis_terminate 1
+  - make setup_e2e || travis_terminate 1
+  - make test_e2e || travis_terminate 1
 
 before_deploy:
   - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
