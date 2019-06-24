@@ -55,3 +55,6 @@ setup_e2e:
 	docker tag golang@sha256:83e8267be041b3ddf6a5792c7e464528408f75c446745642db08cfe4e8d58d18 127.0.0.1:52854/golang:latest
 	docker pull debian@sha256:65e581e00438a33ccbb0bd2d74f03de99d8bec8abca982e906a055f828bc5b57
 	docker tag debian@sha256:65e581e00438a33ccbb0bd2d74f03de99d8bec8abca982e906a055f828bc5b57 127.0.0.1:52854/debian:stretch-20190326
+
+validate_openapi:
+	docker run --rm -v "$(PWD):/app" openapitools/openapi-generator-cli validate -i /app/openapi.yml

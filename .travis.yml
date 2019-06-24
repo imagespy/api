@@ -13,6 +13,7 @@ before_install:
   - sleep 30
 
 script:
+  - make validate_openapi || travis_terminate 1
   - make test || travis_terminate 1
   - make build || travis_terminate 1
   - make setup_e2e || travis_terminate 1

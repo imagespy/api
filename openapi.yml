@@ -1,0 +1,180 @@
+openapi: 3.0.0
+info:
+  license:
+    name: MIT
+  title: imagespy API
+  version: 2.0.0
+servers:
+- url: /
+paths:
+  /v2/images/{reference}:
+    get:
+      operationId: getImageV2
+      parameters:
+      - description: The reference of the image
+        explode: false
+        in: path
+        name: reference
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Image'
+          description: Successful response
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: unexpected error
+      summary: Retrieve an image and its latest image
+    post:
+      operationId: scrapeImageV2
+      parameters:
+      - description: The reference of the image
+        explode: false
+        in: path
+        name: reference
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        201:
+          description: Scrape successful
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: unexpected error
+      summary: Scrape an image
+  /v2/images/{reference}/layers:
+    get:
+      operationId: listLayersV2
+      parameters:
+      - description: The reference of the image
+        explode: false
+        in: path
+        name: reference
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Layers'
+          description: Successful response
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: unexpected error
+      summary: Retrieve the list of layers associated with an image.
+  /v2/images/{reference}/children:
+    get:
+      operationId: listChildrenV2
+      parameters:
+      - description: The reference of the image
+        explode: false
+        in: path
+        name: reference
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Images'
+          description: Successful response
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: unexpected error
+      summary: List images that extend from the image given by {reference}.
+components:
+  parameters:
+    reference:
+      description: The reference of the image
+      explode: false
+      in: path
+      name: reference
+      required: true
+      schema:
+        type: string
+      style: simple
+  schemas:
+    Image:
+      properties:
+        digest:
+          type: string
+        latest_image:
+          $ref: '#/components/schemas/LatestImage'
+        name:
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+      required:
+      - digest
+      - latest_image
+      - name
+      - tags
+    Images:
+      items:
+        $ref: '#/components/schemas/Image'
+      type: array
+    LatestImage:
+      properties:
+        digest:
+          type: string
+        name:
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+      required:
+      - digest
+      - name
+      - tags
+    Layer:
+      properties:
+        digest:
+          type: string
+        source_images:
+          items:
+            $ref: '#/components/schemas/Image'
+          type: array
+      required:
+      - digest
+      - source_images
+    Layers:
+      items:
+        $ref: '#/components/schemas/Layer'
+      type: array
+    Error:
+      properties:
+        code:
+          format: int32
+          type: integer
+        message:
+          type: string
+      required:
+      - code
+      - message
