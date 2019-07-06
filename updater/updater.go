@@ -222,7 +222,7 @@ func (a *allImagesUpdater) Run() error {
 				continue
 			}
 
-			err = a.scraper.ScrapeLatestImage(image)
+			err = a.scraper.ScrapeLatestImageRegC(imageC, repoC)
 			if err != nil {
 				log.Error(err)
 				failCount.Inc()

@@ -38,6 +38,7 @@ type Scraper interface {
 	ScrapeImage(i registry.Image) error
 	ScrapeImageRegC(i registryC.Image, repo *registryC.Repository) error
 	ScrapeLatestImage(i registry.Image) error
+	ScrapeLatestImageRegC(i registryC.Image, repo *registryC.Repository) error
 }
 
 func NewScraper(s store.Store) Scraper {
@@ -343,6 +344,146 @@ func (a *async) ScrapeLatestImage(i registry.Image) error {
 	return nil
 }
 
+func (a *async) ScrapeLatestImageRegC(i registryC.Image, repo *registryC.Repository) error {
+	start := time.Now()
+	defer func() { promScrapeLatestDuration.Observe(time.Since(start).Seconds()) }()
+	latestVP := versionparser.FindForVersion(i.Tag)
+
+	b := true
+	currentTag, err := a.store.Tags().Get(store.TagGetOptions{
+		Distinction: latestVP.Distinction(),
+		ImageName:   i.Domain + "/" + i.Repository,
+		IsLatest:    &b,
+		Name:        i.Tag,
+	})
+	if err != nil && err != store.ErrDoesNotExist {
+		return fmt.Errorf("ScrapeLatestImage - getting tag of image: %s", err)
+	}
+	var currentImage *store.Image
+	if currentTag != nil {
+		currentImage, err = a.store.Images().Get(store.ImageGetOptions{ID: currentTag.ImageID})
+		if err != nil {
+			return fmt.Errorf("ScrapeLatestImage - getting image with id %d: %s", currentTag.ImageID, err)
+		}
+	}
+
+	tags, err := repo.Tags().GetAll()
+	if err != nil {
+		return fmt.Errorf("ScrapeLatestImage - getting images of registry repository: %s", err)
+	}
+
+	latestRegImage := i
+	for _, currentImageTag := range tags {
+		currentVP := versionparser.FindForVersion(currentImageTag)
+		if currentVP.Distinction() != latestVP.Distinction() {
+			continue
+		}
+
+		currentIsGreater, err := currentVP.IsGreaterThan(latestVP)
+		if err != nil {
+			continue
+		}
+
+		if currentIsGreater {
+			currentImage, err := repo.Images().GetByTag(currentImageTag)
+			if err != nil {
+				return err
+			}
+
+			latestVP = currentVP
+			latestRegImage = currentImage
+		}
+	}
+
+	latestImageCreated := false
+	var latestImage *store.Image
+	latestImage, err = a.store.Images().Get(store.ImageGetOptions{Digest: latestRegImage.Digest})
+	if err != nil {
+		if err == store.ErrDoesNotExist {
+			var latestImageLayers []*store.Layer
+			latestImage, latestImageLayers, err = a.CreateStoreImageFromRegistryClientImage(latestVP.Distinction(), latestRegImage, repo)
+			if err != nil {
+				return fmt.Errorf("ScrapeLatestImage - creating image from registry image %s, distinction %s: %s", latestRegImage.Repository, latestVP.Distinction(), err)
+			}
+
+			for _, l := range latestImageLayers {
+				err := a.updateSourceImagesOfLayer(l)
+				if err != nil {
+					return fmt.Errorf("ScrapeLatestImage - updating source images of layer %s: %s", l.Digest, err)
+				}
+			}
+			latestImageCreated = true
+		} else {
+			return fmt.Errorf("ScrapeLatestImage - getting latest image by digest %s: %s", latestImage.Digest, err)
+		}
+	}
+
+	if currentImage != nil && currentImage.Digest == latestImage.Digest {
+		currentImage.ScrapedAt = a.timeFunc()
+		err = a.store.Images().Update(currentImage)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	latestTag, err := a.store.Tags().Get(store.TagGetOptions{
+		Distinction: latestVP.Distinction(),
+		ImageID:     latestImage.ID,
+		ImageName:   latestImage.Name,
+		Name:        latestVP.String(),
+	})
+	if err != nil {
+		if err == store.ErrDoesNotExist {
+			latestTag = &store.Tag{
+				Distinction: latestVP.Distinction(),
+				ImageID:     latestImage.ID,
+				IsLatest:    true,
+				IsTagged:    true,
+				Name:        latestVP.String(),
+			}
+
+			err := a.store.Tags().Create(latestTag)
+			if err != nil {
+				return fmt.Errorf("ScrapeLatestImage - creating latest tag %s for image %s: %s", latestTag.Name, latestImage.Name, err)
+			}
+		} else {
+			return fmt.Errorf("ScrapeLatestImage - getting latest tag with distinction %s - %s: %s", latestVP.Distinction(), latestVP.String(), err)
+		}
+	}
+
+	if latestTag.IsLatest == false {
+		latestTag.IsLatest = true
+		err := a.store.Tags().Update(latestTag)
+		if err != nil {
+			return err
+		}
+	}
+
+	if currentTag != nil && currentTag.IsLatest == true {
+		currentTag.IsLatest = false
+		if currentTag.Name == latestTag.Name {
+			currentTag.IsTagged = false
+		}
+
+		err := a.store.Tags().Update(currentTag)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !latestImageCreated {
+		latestImage.ScrapedAt = a.timeFunc()
+		err = a.store.Images().Update(latestImage)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg registry.Image) (*store.Image, []*store.Layer, error) {
 	tx, err := a.store.Transaction()
 	if err != nil {
@@ -500,8 +641,8 @@ func (a *async) CreateStoreImageFromRegistryClientImage(distinction string, regI
 	image := &store.Image{
 		CreatedAt: a.timeFunc(),
 		Digest:    regImg.Digest,
-		Name:      regImg.Repository,
-		//TODO: Expose this in registry-client. registry-client only supports schema version 2 so hard-coding is a workaround.
+		Name:      regImg.Domain + "/" + regImg.Repository,
+		//TODO: Expose this in registry-client. registry-client only supports schema version 2 so hard-coding here as a workaround.
 		SchemaVersion: 2,
 		ScrapedAt:     a.timeFunc(),
 	}
