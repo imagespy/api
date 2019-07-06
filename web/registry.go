@@ -21,7 +21,6 @@ type registryHandler struct {
 	eventDedup      map[string]struct{}
 	eventDedupMutex *sync.RWMutex
 	regC            *registryC.Registry
-	registry        registry.Registry
 	scraper         scrape.Scraper
 }
 

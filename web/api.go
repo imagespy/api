@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -54,7 +55,6 @@ type latestImageSerialize struct {
 
 type imageHandler struct {
 	regC       *registryC.Registry
-	registry   registry.Registry
 	serializer func(interface{}) ([]byte, error)
 	scraper    scrape.Scraper
 	Store      store.Store
@@ -84,6 +84,9 @@ func (h *imageHandler) createImage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Println(imageID)
+	fmt.Println(tagInput)
 
 	repo, err := h.regC.RepositoryFromString(imageID)
 	if err != nil {
@@ -405,10 +408,9 @@ func convertImageToResult(image *store.Image, tags []*store.Tag, latestImage *st
 	return imageSerialized
 }
 
-func Init(regC *registryC.Registry, registry registry.Registry, scraper scrape.Scraper, store store.Store) http.Handler {
+func Init(regC *registryC.Registry, scraper scrape.Scraper, store store.Store) http.Handler {
 	h := &imageHandler{
 		regC:       regC,
-		registry:   registry,
 		serializer: json.Marshal,
 		scraper:    scraper,
 		Store:      store,
@@ -418,7 +420,6 @@ func Init(regC *registryC.Registry, registry registry.Registry, scraper scrape.S
 		eventDedup:      map[string]struct{}{},
 		eventDedupMutex: &sync.RWMutex{},
 		regC:            regC,
-		registry:        registry,
 		scraper:         scraper,
 	}
 

@@ -48,7 +48,6 @@ type latestImageUpdater struct {
 	dispatchFunc func(groups map[string][]string)
 	promPusher   *push.Pusher
 	regC         *registryC.Registry
-	registry     registry.Registry
 	scraper      scrape.Scraper
 	store        store.Store
 	workerCount  int
@@ -126,41 +125,9 @@ func (s *latestImageUpdater) processRepository(images []string) {
 	}
 }
 
-func NewLatestImageUpdater(pushgatewayURL string, r registry.Registry, scraper scrape.Scraper, s store.Store, wc int) Updater {
-	su := &latestImageUpdater{
-		registry:    r,
-		scraper:     scraper,
-		store:       s,
-		workerCount: wc,
-	}
-
-	if pushgatewayURL != "" {
-		registry := prometheus.NewRegistry()
-		registry.MustRegister(completionTime, duration, failCount)
-		su.promPusher = push.New(pushgatewayURL, "imagespy_updater_latest_image").Gatherer(registry)
-	}
-
-	pool := tunny.NewFunc(wc, func(payload interface{}) interface{} {
-		images, ok := payload.([]string)
-		if !ok {
-			log.Error("unable to cast payload to []string")
-			return nil
-		}
-
-		su.processRepository(images)
-		return nil
-	})
-
-	ap := asyncProcessor{pool: pool}
-	su.dispatchFunc = ap.dispatch
-
-	return su
-}
-
-func NewLatestImageUpdaterRegC(pushgatewayURL string, r registry.Registry, regC *registryC.Registry, scraper scrape.Scraper, s store.Store, wc int) Updater {
+func NewLatestImageUpdater(pushgatewayURL string, regC *registryC.Registry, scraper scrape.Scraper, s store.Store, wc int) Updater {
 	su := &latestImageUpdater{
 		regC:        regC,
-		registry:    r,
 		scraper:     scraper,
 		store:       s,
 		workerCount: wc,
@@ -211,7 +178,6 @@ type allImagesUpdater struct {
 	db         *sql.DB
 	promPusher *push.Pusher
 	regC       *registryC.Registry
-	registry   registry.Registry
 	scraper    scrape.Scraper
 }
 
@@ -275,7 +241,7 @@ func (a *allImagesUpdater) Run() error {
 	return nil
 }
 
-func NewAllImagesUpdater(pushgatewayURL string, db *sql.DB, r registry.Registry, regC *registryC.Registry, s scrape.Scraper) Updater {
+func NewAllImagesUpdater(pushgatewayURL string, db *sql.DB, regC *registryC.Registry, s scrape.Scraper) Updater {
 	var promPusher *push.Pusher
 	if pushgatewayURL != "" {
 		registry := prometheus.NewRegistry()
@@ -287,7 +253,6 @@ func NewAllImagesUpdater(pushgatewayURL string, db *sql.DB, r registry.Registry,
 		db:         db,
 		promPusher: promPusher,
 		regC:       regC,
-		registry:   r,
 		scraper:    s,
 	}
 }

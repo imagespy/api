@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
 	"github.com/imagespy/api/store/gorm"
 	"github.com/imagespy/api/web"
@@ -45,19 +44,6 @@ var serverCmd = &cobra.Command{
 		}
 
 		defer s.Close()
-
-		reg, err := registry.NewRegistry(
-			serverRegistryAddress,
-			registry.Opts{
-				Insecure: serverRegistryInsecure,
-				Password: serverRegistryPassword,
-				Username: serverRegistryUsername,
-			},
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-
 		regCHttpClient := &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
@@ -69,7 +55,7 @@ var serverCmd = &cobra.Command{
 			Client: regCHttpClient,
 			Domain: serverRegistryAddress,
 		})
-		handler := web.Init(regC, reg, scrape.NewScraper(s), s)
+		handler := web.Init(regC, scrape.NewScraper(s), s)
 		log.Fatal(http.ListenAndServe(serverHTTPAddress, handler))
 	},
 }

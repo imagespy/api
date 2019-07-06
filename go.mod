@@ -8,7 +8,6 @@ require (
 	github.com/Jeffail/tunny v0.0.0-20181108205650-4921fff29480
 	github.com/Microsoft/go-winio v0.4.11 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
-	github.com/containerd/continuity v0.0.0-20180829013124-f44b615e492b // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20190515213511-eb9f6a1743f3 // indirect
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v0.0.0-20180908092041-caca40c8ecfc
@@ -29,13 +28,9 @@ require (
 	github.com/jinzhu/now v1.0.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lib/pq v1.1.1 // indirect
-	github.com/mattn/go-shellwords v1.0.3 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/opencontainers/go-digest v0.0.0-20180430190053-c9281466c8b2
-	github.com/opencontainers/runc v1.0.0-rc5 // indirect
-	github.com/opencontainers/runtime-spec v1.0.1 // indirect
-	github.com/opencontainers/selinux v1.2.2 // indirect
 	github.com/peterhellberg/link v1.0.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
@@ -45,7 +40,6 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/spf13/viper v1.2.1
 	github.com/stretchr/testify v1.3.0
-	github.com/vbatts/tar-split v0.11.0 // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/grpc v1.21.0 // indirect
