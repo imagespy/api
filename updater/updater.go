@@ -193,36 +193,30 @@ func (a *allImagesUpdater) Run() error {
 		}
 
 		log.Debugf("Updating image %s...", name)
-		repository, err := a.registry.Repository(name)
+		repository, err := a.regC.RepositoryFromString(name)
 		if err != nil {
 			return err
 		}
 
-		images, err := repository.Images()
+		tags, err := repository.Tags().GetAll()
 		if err != nil {
 			return err
 		}
 
-		for _, image := range images {
-			t, _ := image.Tag()
-			repoC, err := a.regC.RepositoryFromString(image.Repository().FullName() + ":" + t)
+		for _, tag := range tags {
+			image, err := repository.Images().GetByTag(tag)
 			if err != nil {
 				return err
 			}
 
-			imageC, err := repoC.Images().GetByTag(t)
-			if err != nil {
-				return err
-			}
-
-			err = a.scraper.ScrapeImageRegC(imageC, repoC)
+			err = a.scraper.ScrapeImageRegC(image, repository)
 			if err != nil {
 				log.Error(err)
 				failCount.Inc()
 				continue
 			}
 
-			err = a.scraper.ScrapeLatestImageRegC(imageC, repoC)
+			err = a.scraper.ScrapeLatestImageRegC(image, repository)
 			if err != nil {
 				log.Error(err)
 				failCount.Inc()
