@@ -16,6 +16,7 @@ import (
 	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
 	"github.com/imagespy/api/store"
+	registryC "github.com/imagespy/registry-client"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -52,6 +53,7 @@ type latestImageSerialize struct {
 }
 
 type imageHandler struct {
+	regC       *registryC.Registry
 	registry   registry.Registry
 	serializer func(interface{}) ([]byte, error)
 	scraper    scrape.Scraper
@@ -83,21 +85,28 @@ func (h *imageHandler) createImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	regImage, err := h.registry.Image(imageID)
+	repo, err := h.regC.RepositoryFromString(imageID)
+	if err != nil {
+		log.Errorf("creating registry repository from string '%s': %s", imageID, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	regImage, err := repo.Images().GetByTag(tagInput)
 	if err != nil {
 		log.Errorf("instantiating registry image: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = h.scraper.ScrapeImage(regImage)
+	err = h.scraper.ScrapeImageRegC(regImage, repo)
 	if err != nil {
 		log.Errorf("scraping registry image: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = h.scraper.ScrapeLatestImage(regImage)
+	err = h.scraper.ScrapeLatestImageRegC(regImage, repo)
 	if err != nil {
 		log.Errorf("scraping latest registry image: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -396,8 +405,9 @@ func convertImageToResult(image *store.Image, tags []*store.Tag, latestImage *st
 	return imageSerialized
 }
 
-func Init(registry registry.Registry, scraper scrape.Scraper, store store.Store) http.Handler {
+func Init(regC *registryC.Registry, registry registry.Registry, scraper scrape.Scraper, store store.Store) http.Handler {
 	h := &imageHandler{
+		regC:       regC,
 		registry:   registry,
 		serializer: json.Marshal,
 		scraper:    scraper,
