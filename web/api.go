@@ -417,6 +417,7 @@ func Init(regC *registryC.Registry, registry registry.Registry, scraper scrape.S
 	rh := &registryHandler{
 		eventDedup:      map[string]struct{}{},
 		eventDedupMutex: &sync.RWMutex{},
+		regC:            regC,
 		registry:        registry,
 		scraper:         scraper,
 	}
