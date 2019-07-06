@@ -414,7 +414,7 @@ func (a *async) ScrapeLatestImageRegC(i registryC.Image, repo *registryC.Reposit
 			}
 			latestImageCreated = true
 		} else {
-			return fmt.Errorf("ScrapeLatestImage - getting latest image by digest %s: %s", latestImage.Digest, err)
+			return fmt.Errorf("ScrapeLatestImage - getting latest image by digest %s: %s", latestRegImage.Digest, err)
 		}
 	}
 

@@ -105,8 +105,19 @@ var updaterLatestCmd = &cobra.Command{
 			log.Fatal(spylog.FormatError(err))
 		}
 
+		regCHttpClient := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: updaterRegistryInsecure,
+				},
+			},
+		}
+		regC := registryC.New(registryC.Options{
+			Client: regCHttpClient,
+			Domain: updaterRegistryAddress,
+		})
 		scraper := scrape.NewScraper(s)
-		u := updater.NewLatestImageUpdater(updaterPromPushAddress, reg, scraper, s, updaterWorkerCount)
+		u := updater.NewLatestImageUpdaterRegC(updaterPromPushAddress, reg, regC, scraper, s, updaterWorkerCount)
 		err = u.Run()
 		if err != nil {
 			log.Fatal(spylog.FormatError(err))

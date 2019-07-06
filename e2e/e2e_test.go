@@ -280,9 +280,9 @@ func runningTheUpdaterComand(cmdName string) error {
 		"--registry.address", "127.0.0.1:52854",
 		"--registry.insecure",
 	)
-	_, err := cmd.CombinedOutput()
+	stdErrOut, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("running the updater: %s", err)
+		return fmt.Errorf("running the updater: %s\n\n%s", err, string(stdErrOut))
 	}
 
 	return nil

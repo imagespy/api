@@ -47,6 +47,7 @@ type Updater interface {
 type latestImageUpdater struct {
 	dispatchFunc func(groups map[string][]string)
 	promPusher   *push.Pusher
+	regC         *registryC.Registry
 	registry     registry.Registry
 	scraper      scrape.Scraper
 	store        store.Store
@@ -96,7 +97,7 @@ func (s *latestImageUpdater) Run() error {
 }
 
 func (s *latestImageUpdater) processRepository(images []string) {
-	repo, err := s.registry.Repository(images[0])
+	repo, err := s.regC.RepositoryFromString(images[0])
 	if err != nil {
 		log.Errorf("unable to parse repository from image %s: %s", images[0], err)
 		failCount.Inc()
@@ -105,14 +106,21 @@ func (s *latestImageUpdater) processRepository(images []string) {
 
 	for _, img := range images {
 		log.Debugf("scraping latest image for %s", img)
-		_, _, tag, digest, err := registry.ParseImage(img)
+		_, _, tag, _, err := registry.ParseImage(img)
 		if err != nil {
 			log.Errorf("unable to scrape latest image of %s: %s", img, err)
 			failCount.Inc()
 			continue
 		}
 
-		err = s.scraper.ScrapeLatestImage(repo.Image(digest, tag))
+		regImage, err := repo.Images().GetByTag(tag)
+		if err != nil {
+			log.Errorf("unable get image by tag in scrape latest image of %s: %s", img, err)
+			failCount.Inc()
+			continue
+		}
+
+		err = s.scraper.ScrapeLatestImageRegC(regImage, repo)
 		if err != nil {
 			log.Errorf("unable to scrape latest image of %s: %s", img, err)
 			failCount.Inc()
@@ -122,6 +130,38 @@ func (s *latestImageUpdater) processRepository(images []string) {
 
 func NewLatestImageUpdater(pushgatewayURL string, r registry.Registry, scraper scrape.Scraper, s store.Store, wc int) Updater {
 	su := &latestImageUpdater{
+		registry:    r,
+		scraper:     scraper,
+		store:       s,
+		workerCount: wc,
+	}
+
+	if pushgatewayURL != "" {
+		registry := prometheus.NewRegistry()
+		registry.MustRegister(completionTime, duration, failCount)
+		su.promPusher = push.New(pushgatewayURL, "imagespy_updater_latest_image").Gatherer(registry)
+	}
+
+	pool := tunny.NewFunc(wc, func(payload interface{}) interface{} {
+		images, ok := payload.([]string)
+		if !ok {
+			log.Error("unable to cast payload to []string")
+			return nil
+		}
+
+		su.processRepository(images)
+		return nil
+	})
+
+	ap := asyncProcessor{pool: pool}
+	su.dispatchFunc = ap.dispatch
+
+	return su
+}
+
+func NewLatestImageUpdaterRegC(pushgatewayURL string, r registry.Registry, regC *registryC.Registry, scraper scrape.Scraper, s store.Store, wc int) Updater {
+	su := &latestImageUpdater{
+		regC:        regC,
 		registry:    r,
 		scraper:     scraper,
 		store:       s,
