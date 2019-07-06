@@ -372,7 +372,7 @@ func (a *async) ScrapeLatestImageRegC(i registryC.Image, repo *registryC.Reposit
 		return fmt.Errorf("ScrapeLatestImage - getting images of registry repository: %s", err)
 	}
 
-	latestRegImage := i
+	latestRegTag := i.Tag
 	for _, currentImageTag := range tags {
 		currentVP := versionparser.FindForVersion(currentImageTag)
 		if currentVP.Distinction() != latestVP.Distinction() {
@@ -385,14 +385,14 @@ func (a *async) ScrapeLatestImageRegC(i registryC.Image, repo *registryC.Reposit
 		}
 
 		if currentIsGreater {
-			currentImage, err := repo.Images().GetByTag(currentImageTag)
-			if err != nil {
-				return err
-			}
-
 			latestVP = currentVP
-			latestRegImage = currentImage
+			latestRegTag = currentImageTag
 		}
+	}
+
+	latestRegImage, err := repo.Images().GetByTag(latestRegTag)
+	if err != nil {
+		return err
 	}
 
 	latestImageCreated := false

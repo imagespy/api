@@ -106,20 +106,18 @@ func (s *latestImageUpdater) processRepository(images []string) {
 
 	for _, img := range images {
 		log.Debugf("scraping latest image for %s", img)
-		_, _, tag, _, err := registry.ParseImage(img)
+		domain, path, tag, _, err := registry.ParseImage(img)
 		if err != nil {
 			log.Errorf("unable to scrape latest image of %s: %s", img, err)
 			failCount.Inc()
 			continue
 		}
 
-		regImage, err := repo.Images().GetByTag(tag)
-		if err != nil {
-			log.Errorf("unable get image by tag in scrape latest image of %s: %s", img, err)
-			failCount.Inc()
-			continue
+		regImage := registryC.Image{
+			Domain:     domain,
+			Repository: path,
+			Tag:        tag,
 		}
-
 		err = s.scraper.ScrapeLatestImageRegC(regImage, repo)
 		if err != nil {
 			log.Errorf("unable to scrape latest image of %s: %s", img, err)
