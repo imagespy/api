@@ -15,7 +15,6 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-metrics v0.0.0-20181218153428-b84716841b82 // indirect
 	github.com/docker/go-units v0.3.3 // indirect
-	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
 	github.com/genuinetools/reg v0.15.5
 	github.com/go-sql-driver/mysql v1.4.0
@@ -23,6 +22,7 @@ require (
 	github.com/golang/mock v1.2.0
 	github.com/google/go-cmp v0.3.0 // indirect
 	github.com/gorilla/mux v1.7.0
+	github.com/imagespy/registry-client v0.0.0-20190330150258-036bacd1ff19
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jinzhu/gorm v1.9.1
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
@@ -33,7 +33,6 @@ require (
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/opencontainers/go-digest v0.0.0-20180430190053-c9281466c8b2
-	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v1.0.0-rc5 // indirect
 	github.com/opencontainers/runtime-spec v1.0.1 // indirect
 	github.com/opencontainers/selinux v1.2.2 // indirect

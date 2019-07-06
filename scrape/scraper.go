@@ -10,6 +10,7 @@ import (
 	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/store"
 	"github.com/imagespy/api/versionparser"
+	registryC "github.com/imagespy/registry-client"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,6 +36,7 @@ var (
 
 type Scraper interface {
 	ScrapeImage(i registry.Image) error
+	ScrapeImageRegC(i registryC.Image, repo *registryC.Repository) error
 	ScrapeLatestImage(i registry.Image) error
 }
 
@@ -45,9 +47,79 @@ func NewScraper(s store.Store) Scraper {
 	}
 }
 
+func NewScraperRegC(reg *registryC.Registry, s store.Store) Scraper {
+	return &async{
+		reg:      reg,
+		store:    s,
+		timeFunc: func() time.Time { return time.Now().UTC() },
+	}
+}
+
 type async struct {
+	reg      *registryC.Registry
 	store    store.Store
 	timeFunc func() time.Time
+}
+
+func (a *async) ScrapeImageRegC(i registryC.Image, repo *registryC.Repository) error {
+	start := time.Now()
+	defer func() { promScrapeDuration.Observe(time.Since(start).Seconds()) }()
+	vp := versionparser.FindForVersion(i.Tag)
+	image, err := a.store.Images().Get(store.ImageGetOptions{Digest: i.Digest})
+	if err == nil {
+		newTag := &store.Tag{
+			Distinction: vp.Distinction(),
+			ImageID:     image.ID,
+			IsLatest:    false,
+			IsTagged:    true,
+			Name:        i.Tag,
+		}
+
+		tags, err := a.store.Tags().List(store.TagListOptions{ImageID: image.ID})
+		if err != nil {
+			return err
+		}
+
+		tagExists := false
+		for _, tagItem := range tags {
+			if tagItem.Name == newTag.Name {
+				tagExists = true
+			}
+		}
+
+		if !tagExists {
+			err := a.store.Tags().Create(newTag)
+			if err != nil {
+				return err
+			}
+		}
+
+		image.ScrapedAt = a.timeFunc()
+		err = a.store.Images().Update(image)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if err != nil && err == store.ErrDoesNotExist {
+		_, layers, err := a.CreateStoreImageFromRegistryClientImage(vp.Distinction(), i, repo)
+		if err != nil {
+			return err
+		}
+
+		for _, l := range layers {
+			err := a.updateSourceImagesOfLayer(l)
+			if err != nil {
+				log.Errorf("failed to update source image of layer %d: %s", l.ID, err)
+			}
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("ScrapeImage: reading image with digest %s failed: %s", i.Digest, err)
 }
 
 func (a *async) ScrapeImage(i registry.Image) error {
@@ -391,6 +463,111 @@ func (a *async) CreateStoreImageFromRegistryImage(distinction string, regImg reg
 			}
 
 			layer := &store.Layer{Digest: layerDigest}
+			err = layerClient.Create(layer)
+			if err != nil {
+				log.Errorf("unable to create layer %s for platform %s: %s", layer.Digest, platform.ManifestDigest, err)
+				tx.Rollback()
+				return nil, nil, err
+			}
+
+			layerPosition := &store.LayerPosition{LayerID: layer.ID, PlatformID: platform.ID, Position: idx}
+			err = layerPositionClient.Create(layerPosition)
+			if err != nil {
+				log.Errorf("unable to create layer position '%d' for layer '%s' for platform '%s': %s", idx, layer.Digest, platform.ManifestDigest, err)
+				tx.Rollback()
+				return nil, nil, err
+			}
+
+			layers = append(layers, layer)
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+	}
+
+	return image, layers, nil
+}
+
+func (a *async) CreateStoreImageFromRegistryClientImage(distinction string, regImg registryC.Image, repo *registryC.Repository) (*store.Image, []*store.Layer, error) {
+	tx, err := a.store.Transaction()
+	if err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
+
+	image := &store.Image{
+		CreatedAt: a.timeFunc(),
+		Digest:    regImg.Digest,
+		Name:      regImg.Repository,
+		//TODO: Expose this in registry-client. registry-client only supports schema version 2 so hard-coding is a workaround.
+		SchemaVersion: 2,
+		ScrapedAt:     a.timeFunc(),
+	}
+	err = tx.Images().Create(image)
+	if err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
+
+	tag := &store.Tag{
+		Distinction: distinction,
+		ImageID:     image.ID,
+		IsLatest:    false,
+		IsTagged:    true,
+		Name:        regImg.Tag,
+	}
+	err = tx.Tags().Create(tag)
+	if err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
+
+	layers := []*store.Layer{}
+	layerClient := tx.Layers()
+	layerPositionClient := tx.LayerPositions()
+	platformClient := tx.Platforms()
+	for _, p := range regImg.Platforms {
+		regManifest, err := repo.Manifests().Get(p.Digest)
+		if err != nil {
+			tx.Rollback()
+			return nil, nil, err
+		}
+
+		platform := &store.Platform{
+			Architecture:   p.Architecture,
+			CreatedAt:      a.timeFunc(),
+			ImageID:        image.ID,
+			ManifestDigest: regManifest.Config.Digest.String(),
+			OS:             p.OS,
+			OSVersion:      p.OSVersion,
+			Variant:        p.Variant,
+		}
+		platform.Created = platform.CreatedAt
+		for _, name := range p.Features {
+			platform.Features = append(platform.Features, &store.Feature{
+				CreatedAt: a.timeFunc(),
+				Name:      name,
+			})
+		}
+
+		for _, name := range p.OSFeatures {
+			platform.OSFeatures = append(platform.OSFeatures, &store.OSFeature{
+				CreatedAt: a.timeFunc(),
+				Name:      name,
+			})
+		}
+
+		err = platformClient.Create(platform)
+		if err != nil {
+			log.Errorf("unable to create platform %s for image %d: %s", platform.ManifestDigest, image.ID, err)
+			tx.Rollback()
+			return nil, nil, err
+		}
+
+		for idx, l := range regManifest.Layers {
+			layer := &store.Layer{Digest: l.Digest.String()}
 			err = layerClient.Create(layer)
 			if err != nil {
 				log.Errorf("unable to create layer %s for platform %s: %s", layer.Digest, platform.ManifestDigest, err)

@@ -9,6 +9,7 @@ import (
 	"github.com/Jeffail/tunny"
 	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
+	registryC "github.com/imagespy/registry-client"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 
@@ -171,6 +172,7 @@ func (ap *asyncProcessor) dispatch(groups map[string][]string) {
 type allImagesUpdater struct {
 	db         *sql.DB
 	promPusher *push.Pusher
+	regC       *registryC.Registry
 	registry   registry.Registry
 	scraper    scrape.Scraper
 }
@@ -202,7 +204,18 @@ func (a *allImagesUpdater) Run() error {
 		}
 
 		for _, image := range images {
-			err := a.scraper.ScrapeImage(image)
+			t, _ := image.Tag()
+			repoC, err := a.regC.RepositoryFromString(image.Repository().FullName() + ":" + t)
+			if err != nil {
+				return err
+			}
+
+			imageC, err := repoC.Images().GetByTag(t)
+			if err != nil {
+				return err
+			}
+
+			err = a.scraper.ScrapeImageRegC(imageC, repoC)
 			if err != nil {
 				log.Error(err)
 				failCount.Inc()
@@ -230,7 +243,7 @@ func (a *allImagesUpdater) Run() error {
 	return nil
 }
 
-func NewAllImagesUpdater(pushgatewayURL string, db *sql.DB, r registry.Registry, s scrape.Scraper) Updater {
+func NewAllImagesUpdater(pushgatewayURL string, db *sql.DB, r registry.Registry, regC *registryC.Registry, s scrape.Scraper) Updater {
 	var promPusher *push.Pusher
 	if pushgatewayURL != "" {
 		registry := prometheus.NewRegistry()
@@ -241,6 +254,7 @@ func NewAllImagesUpdater(pushgatewayURL string, db *sql.DB, r registry.Registry,
 	return &allImagesUpdater{
 		db:         db,
 		promPusher: promPusher,
+		regC:       regC,
 		registry:   r,
 		scraper:    s,
 	}

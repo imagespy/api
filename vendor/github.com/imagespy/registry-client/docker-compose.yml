@@ -1,0 +1,8 @@
+version: '3'
+services:
+  registry:
+    environment:
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    image: registry:2.7.1
+    ports:
+      - "6363:5000"

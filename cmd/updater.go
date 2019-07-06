@@ -1,13 +1,16 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"database/sql"
+	"net/http"
 
 	spylog "github.com/imagespy/api/log"
 	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
 	"github.com/imagespy/api/store/gorm"
 	"github.com/imagespy/api/updater"
+	registryC "github.com/imagespy/registry-client"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -43,6 +46,18 @@ var updaterAllCmd = &cobra.Command{
 			log.Fatal(spylog.FormatError(err))
 		}
 
+		regCHttpClient := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: updaterRegistryInsecure,
+				},
+			},
+		}
+		regC := registryC.New(registryC.Options{
+			Client: regCHttpClient,
+			Domain: updaterRegistryAddress,
+		})
+
 		registry.SetLog(log.StandardLogger())
 		reg, err := registry.NewRegistry(
 			updaterRegistryAddress,
@@ -56,8 +71,8 @@ var updaterAllCmd = &cobra.Command{
 			log.Fatal(spylog.FormatError(err))
 		}
 
-		scraper := scrape.NewScraper(s)
-		u := updater.NewAllImagesUpdater(updaterPromPushAddress, db, reg, scraper)
+		scraper := scrape.NewScraperRegC(regC, s)
+		u := updater.NewAllImagesUpdater(updaterPromPushAddress, db, reg, regC, scraper)
 		err = u.Run()
 		if err != nil {
 			log.Fatal(spylog.FormatError(err))
