@@ -1,21 +1,32 @@
 package registry
 
 import (
-	reg "github.com/genuinetools/reg/registry"
+	"fmt"
+
+	"github.com/docker/distribution/reference"
 )
 
 func ParseImage(n string) (string, string, string, string, error) {
-	i, err := reg.ParseImage(n)
+	domain := ""
+	path := ""
+	tag := ""
+	digest := ""
+
+	named, err := reference.ParseNormalizedNamed(n)
 	if err != nil {
-		return "", "", "", "", err
+		return domain, path, tag, digest, fmt.Errorf("parsing image %q failed: %v", n, err)
 	}
 
-	var domain string
-	if i.Domain == "docker.io" {
-		domain = "index.docker.io"
-	} else {
-		domain = i.Domain
+	named = reference.TagNameOnly(named)
+	domain = reference.Domain(named)
+	path = reference.Path(named)
+	if tagged, ok := named.(reference.Tagged); ok {
+		tag = tagged.Tag()
 	}
 
-	return domain, i.Path, i.Tag, i.Digest.String(), nil
+	if canonical, ok := named.(reference.Canonical); ok {
+		digest = canonical.Digest().String()
+	}
+
+	return domain, path, tag, digest, nil
 }
