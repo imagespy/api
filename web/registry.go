@@ -100,8 +100,8 @@ func (rh *registryHandler) registryEvent(w http.ResponseWriter, r *http.Request)
 					return
 				}
 
-				rh.scraper.ScrapeImageRegC(regImage, repo)
-				rh.scraper.ScrapeLatestImageRegC(regImage, repo)
+				rh.scraper.ScrapeImage(regImage, repo)
+				rh.scraper.ScrapeLatestImage(regImage, repo)
 			}()
 		}
 	}

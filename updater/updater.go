@@ -118,7 +118,7 @@ func (s *latestImageUpdater) processRepository(images []string) {
 			Repository: path,
 			Tag:        tag,
 		}
-		err = s.scraper.ScrapeLatestImageRegC(regImage, repo)
+		err = s.scraper.ScrapeLatestImage(regImage, repo)
 		if err != nil {
 			log.Errorf("unable to scrape latest image of %s: %s", img, err)
 			failCount.Inc()
@@ -247,14 +247,14 @@ func (a *allImagesUpdater) Run() error {
 				return err
 			}
 
-			err = a.scraper.ScrapeImageRegC(image, repository)
+			err = a.scraper.ScrapeImage(image, repository)
 			if err != nil {
 				log.Error(err)
 				failCount.Inc()
 				continue
 			}
 
-			err = a.scraper.ScrapeLatestImageRegC(image, repository)
+			err = a.scraper.ScrapeLatestImage(image, repository)
 			if err != nil {
 				log.Error(err)
 				failCount.Inc()

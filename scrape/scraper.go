@@ -35,8 +35,8 @@ var (
 )
 
 type Scraper interface {
-	ScrapeImageRegC(i registryC.Image, repo *registryC.Repository) error
-	ScrapeLatestImageRegC(i registryC.Image, repo *registryC.Repository) error
+	ScrapeImage(i registryC.Image, repo *registryC.Repository) error
+	ScrapeLatestImage(i registryC.Image, repo *registryC.Repository) error
 }
 
 func NewScraper(s store.Store) Scraper {
@@ -60,7 +60,7 @@ type async struct {
 	timeFunc func() time.Time
 }
 
-func (a *async) ScrapeImageRegC(i registryC.Image, repo *registryC.Repository) error {
+func (a *async) ScrapeImage(i registryC.Image, repo *registryC.Repository) error {
 	start := time.Now()
 	defer func() { promScrapeDuration.Observe(time.Since(start).Seconds()) }()
 	if i.Digest == "" {
@@ -130,7 +130,7 @@ func (a *async) ScrapeImageRegC(i registryC.Image, repo *registryC.Repository) e
 	return fmt.Errorf("ScrapeImage: reading image with digest %s failed: %s", i.Digest, err)
 }
 
-func (a *async) ScrapeLatestImageRegC(i registryC.Image, repo *registryC.Repository) error {
+func (a *async) ScrapeLatestImage(i registryC.Image, repo *registryC.Repository) error {
 	start := time.Now()
 	defer func() { promScrapeLatestDuration.Observe(time.Since(start).Seconds()) }()
 	latestVP := versionparser.FindForVersion(i.Tag)

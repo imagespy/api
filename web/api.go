@@ -99,14 +99,14 @@ func (h *imageHandler) createImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.scraper.ScrapeImageRegC(regImage, repo)
+	err = h.scraper.ScrapeImage(regImage, repo)
 	if err != nil {
 		log.Errorf("scraping registry image: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = h.scraper.ScrapeLatestImageRegC(regImage, repo)
+	err = h.scraper.ScrapeLatestImage(regImage, repo)
 	if err != nil {
 		log.Errorf("scraping latest registry image: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
