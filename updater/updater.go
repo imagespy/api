@@ -45,12 +45,12 @@ type Updater interface {
 }
 
 type latestImageUpdater struct {
-	dispatchFunc func(groups map[string][]string)
-	promPusher   *push.Pusher
-	regC         *registryC.Registry
-	scraper      scrape.Scraper
-	store        store.Store
-	workerCount  int
+	dispatchFunc      func(groups map[string][]string)
+	promPusher        *push.Pusher
+	repositoryCreator func(name string) (*registryC.Repository, error)
+	scraper           scrape.Scraper
+	store             store.Store
+	workerCount       int
 }
 
 func (s *latestImageUpdater) Run() error {
@@ -96,9 +96,9 @@ func (s *latestImageUpdater) Run() error {
 }
 
 func (s *latestImageUpdater) processRepository(images []string) {
-	repo, err := s.regC.RepositoryFromString(images[0])
+	repo, err := s.repositoryCreator(images[0])
 	if err != nil {
-		log.Errorf("unable to parse repository from image %s: %s", images[0], err)
+		log.Errorf("unable to create repository from image %s: %s", images[0], err)
 		failCount.Inc()
 		return
 	}
@@ -125,12 +125,12 @@ func (s *latestImageUpdater) processRepository(images []string) {
 	}
 }
 
-func NewLatestImageUpdater(pushgatewayURL string, regC *registryC.Registry, scraper scrape.Scraper, s store.Store, wc int) Updater {
+func NewLatestImageUpdater(pushgatewayURL string, rc func(name string) (*registryC.Repository, error), scraper scrape.Scraper, s store.Store, wc int) Updater {
 	su := &latestImageUpdater{
-		regC:        regC,
-		scraper:     scraper,
-		store:       s,
-		workerCount: wc,
+		repositoryCreator: rc,
+		scraper:           scraper,
+		store:             s,
+		workerCount:       wc,
 	}
 
 	if pushgatewayURL != "" {
@@ -175,10 +175,10 @@ func (ap *asyncProcessor) dispatch(groups map[string][]string) {
 }
 
 type allImagesUpdater struct {
-	db         *sql.DB
-	promPusher *push.Pusher
-	regC       *registryC.Registry
-	scraper    scrape.Scraper
+	db                *sql.DB
+	promPusher        *push.Pusher
+	repositoryCreator func(name string) (*registryC.Repository, error)
+	scraper           scrape.Scraper
 }
 
 func (a *allImagesUpdater) Run() error {
@@ -197,7 +197,7 @@ func (a *allImagesUpdater) Run() error {
 		}
 
 		log.Debugf("Updating image %s...", name)
-		repository, err := a.regC.RepositoryFromString(name)
+		repository, err := a.repositoryCreator(name)
 		if err != nil {
 			return err
 		}
@@ -241,7 +241,7 @@ func (a *allImagesUpdater) Run() error {
 	return nil
 }
 
-func NewAllImagesUpdater(pushgatewayURL string, db *sql.DB, regC *registryC.Registry, s scrape.Scraper) Updater {
+func NewAllImagesUpdater(pushgatewayURL string, db *sql.DB, rc func(name string) (*registryC.Repository, error), s scrape.Scraper) Updater {
 	var promPusher *push.Pusher
 	if pushgatewayURL != "" {
 		registry := prometheus.NewRegistry()
@@ -250,9 +250,9 @@ func NewAllImagesUpdater(pushgatewayURL string, db *sql.DB, regC *registryC.Regi
 	}
 
 	return &allImagesUpdater{
-		db:         db,
-		promPusher: promPusher,
-		regC:       regC,
-		scraper:    s,
+		db:                db,
+		promPusher:        promPusher,
+		repositoryCreator: rc,
+		scraper:           s,
 	}
 }

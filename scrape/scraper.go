@@ -45,16 +45,7 @@ func NewScraper(s store.Store) Scraper {
 	}
 }
 
-func NewScraperRegC(reg *registryC.Registry, s store.Store) Scraper {
-	return &async{
-		reg:      reg,
-		store:    s,
-		timeFunc: func() time.Time { return time.Now().UTC() },
-	}
-}
-
 type async struct {
-	reg      *registryC.Registry
 	store    store.Store
 	timeFunc func() time.Time
 }

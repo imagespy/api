@@ -2,7 +2,6 @@ package web
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"sync"
 
@@ -84,9 +83,6 @@ func (h *imageHandler) createImage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	fmt.Println(imageID)
-	fmt.Println(tagInput)
 
 	repo, err := h.regC.RepositoryFromString(imageID)
 	if err != nil {
