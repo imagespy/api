@@ -16,7 +16,7 @@ import (
 	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
 	"github.com/imagespy/api/store"
-	registryC "github.com/imagespy/registry-client"
+	registryClient "github.com/imagespy/registry-client"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -53,10 +53,10 @@ type latestImageSerialize struct {
 }
 
 type imageHandler struct {
-	regC       *registryC.Registry
-	serializer func(interface{}) ([]byte, error)
-	scraper    scrape.Scraper
-	Store      store.Store
+	repositoryCreator func(name string) (*registryClient.Repository, error)
+	serializer        func(interface{}) ([]byte, error)
+	scraper           scrape.Scraper
+	Store             store.Store
 }
 
 func (h *imageHandler) createImage(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +84,7 @@ func (h *imageHandler) createImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.regC.RepositoryFromString(imageID)
+	repo, err := h.repositoryCreator(imageID)
 	if err != nil {
 		log.Errorf("creating registry repository from string '%s': %s", imageID, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -404,19 +404,19 @@ func convertImageToResult(image *store.Image, tags []*store.Tag, latestImage *st
 	return imageSerialized
 }
 
-func Init(regC *registryC.Registry, scraper scrape.Scraper, store store.Store) http.Handler {
+func Init(rc func(name string) (*registryClient.Repository, error), scraper scrape.Scraper, store store.Store) http.Handler {
 	h := &imageHandler{
-		regC:       regC,
-		serializer: json.Marshal,
-		scraper:    scraper,
-		Store:      store,
+		repositoryCreator: rc,
+		serializer:        json.Marshal,
+		scraper:           scraper,
+		Store:             store,
 	}
 
 	rh := &registryHandler{
-		eventDedup:      map[string]struct{}{},
-		eventDedupMutex: &sync.RWMutex{},
-		regC:            regC,
-		scraper:         scraper,
+		eventDedup:        map[string]struct{}{},
+		eventDedupMutex:   &sync.RWMutex{},
+		repositoryCreator: rc,
+		scraper:           scraper,
 	}
 
 	lh := &layersHandler{

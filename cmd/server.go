@@ -1,27 +1,28 @@
 package cmd
 
 import (
-	"crypto/tls"
 	"net/http"
+	"time"
 
+	"github.com/imagespy/api/registry"
 	"github.com/imagespy/api/scrape"
 	"github.com/imagespy/api/store/gorm"
 	"github.com/imagespy/api/web"
-	registryC "github.com/imagespy/registry-client"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var (
-	serverDBConnection      string
-	serverHTTPAddress       string
-	serverLogLevel          string
-	serverMigrationsEnabled bool
-	serverMigrationsPath    string
-	serverRegistryAddress   string
-	serverRegistryInsecure  bool
-	serverRegistryPassword  string
-	serverRegistryUsername  string
+	serverDBConnection       string
+	serverHTTPAddress        string
+	serverLogLevel           string
+	serverMigrationsEnabled  bool
+	serverMigrationsPath     string
+	serverRegistryAddress    string
+	serverRegistryAuthMethod string
+	serverRegistryInsecure   bool
+	serverRegistryPassword   string
+	serverRegistryUsername   string
 )
 
 var serverCmd = &cobra.Command{
@@ -44,18 +45,19 @@ var serverCmd = &cobra.Command{
 		}
 
 		defer s.Close()
-		regCHttpClient := &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: serverRegistryInsecure,
+		builder := &registry.Builder{
+			Configs: []*registry.Config{
+				{
+					Address:           serverRegistryAddress,
+					Authentication:    serverRegistryAuthMethod,
+					BasicAuthPassword: serverRegistryPassword,
+					BasicAuthUsername: serverRegistryUsername,
+					Insecure:          serverRegistryInsecure,
+					Timeout:           60 * time.Second,
 				},
 			},
 		}
-		regC := registryC.New(registryC.Options{
-			Client: regCHttpClient,
-			Domain: serverRegistryAddress,
-		})
-		handler := web.Init(regC, scrape.NewScraper(s), s)
+		handler := web.Init(builder.NewRepositoryFromImage, scrape.NewScraper(s), s)
 		log.Fatal(http.ListenAndServe(serverHTTPAddress, handler))
 	},
 }
@@ -67,6 +69,7 @@ func init() {
 	serverCmd.Flags().BoolVar(&serverMigrationsEnabled, "migrations.enabled", false, "execute migrations on startup")
 	serverCmd.Flags().StringVar(&serverMigrationsPath, "migrations.path", "file:///migrations", "path to directory containing migration files")
 	serverCmd.Flags().StringVar(&serverRegistryAddress, "registry.address", "docker.io", "the address of the docker registry")
+	serverCmd.Flags().StringVar(&serverRegistryAuthMethod, "registry.auth-method", "", "use given method to authenticate against the docker registry (basic or token)")
 	serverCmd.Flags().BoolVar(&serverRegistryInsecure, "registry.insecure", false, "disable certificate validation")
 	serverCmd.Flags().StringVar(&serverRegistryPassword, "registry.password", "", "the password to authenticate against the docker registry")
 	serverCmd.Flags().StringVar(&serverRegistryUsername, "registry.username", "", "the username to authenticate against the docker registry")

@@ -13,15 +13,15 @@ import (
 
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/notifications"
-	registryC "github.com/imagespy/registry-client"
+	registryClient "github.com/imagespy/registry-client"
 	log "github.com/sirupsen/logrus"
 )
 
 type registryHandler struct {
-	eventDedup      map[string]struct{}
-	eventDedupMutex *sync.RWMutex
-	regC            *registryC.Registry
-	scraper         scrape.Scraper
+	eventDedup        map[string]struct{}
+	eventDedupMutex   *sync.RWMutex
+	repositoryCreator func(name string) (*registryClient.Repository, error)
+	scraper           scrape.Scraper
 }
 
 func (rh *registryHandler) registryEvent(w http.ResponseWriter, r *http.Request) {
@@ -87,13 +87,13 @@ func (rh *registryHandler) registryEvent(w http.ResponseWriter, r *http.Request)
 					return
 				}
 
-				regImage := registryC.Image{
+				regImage := registryClient.Image{
 					Domain:     domain,
 					Repository: path,
 					Tag:        tag,
 				}
 
-				repo, err := rh.regC.RepositoryFromString(imageName)
+				repo, err := rh.repositoryCreator(imageName)
 				if err != nil {
 					log.Errorf("creating repository from string '%s': %s", imageName, err)
 					return
